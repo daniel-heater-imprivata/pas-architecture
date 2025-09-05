@@ -41,7 +41,7 @@ The PAS system uses ephemeral SSH keys for session establishment with the follow
 
 ## Enhanced Security Recommendations
 
-### Option 1: Certificate-Based Authentication (Recommended)
+### Option 1: Certificate-Based Authentication (Incremental Improvement)
 Replace ephemeral SSH keys with short-lived SSH certificates for improved security and audit trail.
 
 #### Implementation Approach
@@ -63,8 +63,15 @@ ssh-keygen -t rsa -f /etc/pas/ca_key
 ssh-keygen -s /etc/pas/ca_key -I "user@session" -n user -V +2m user_cert.pub
 ```
 
-### Option 2: Reverse Tunnel Architecture (Fundamental Redesign)
+### Option 2: Reverse Tunnel Architecture (RECOMMENDED - Fundamental Redesign)
 Eliminate cross-zone credential distribution entirely using reverse tunnels over existing SSH connections.
+
+#### **Feasibility Assessment: HIGH**
+Based on detailed codebase analysis, this approach is **highly feasible** because:
+- **Uses existing infrastructure** - Gatekeeper already connects to PAS Server via SSH
+- **No new firewall rules** - Leverages existing Internal → DMZ SSH (port 22)
+- **Complies with security policy** - PAS Server receives (never initiates) SSH connections
+- **Existing RSS protocol** - Runs over the same SSH connection Gatekeeper already uses
 
 #### Implementation Approach
 ```
@@ -72,11 +79,33 @@ Current: UCM receives credentials → Connects to Internal Zone
 Proposed: Gatekeeper creates reverse tunnel → UCM connects without credentials
 ```
 
-#### **Key Advantage: Uses Existing Infrastructure**
-This approach leverages the **existing SSH connection** that Gatekeeper already makes to PAS Server:
-- **No new firewall rules required** - Uses existing Internal → DMZ SSH (port 22)
-- **Complies with SSH policy** - PAS Server receives (not initiates) SSH connections
-- **Existing RSS protocol** - Runs over the same SSH connection Gatekeeper already uses
+#### **Technical Implementation Using Existing SSH Connection**
+```java
+// Gatekeeper already has SSH connection to Parent - just add reverse tunnels
+public class GatekeeperReverseTunnelService {
+
+    @Autowired
+    private ExistingSSHConnection parentConnection; // Already exists!
+
+    public void createReverseTunnelForSession(String sessionId, int servicePort) {
+        // Use EXISTING SSH connection to Parent
+        SSHSession existingSession = parentConnection.getSession();
+
+        // Create reverse tunnel using existing connection
+        int allocatedPort = existingSession.setPortForwardingR(
+            0, // Let Parent allocate port
+            "127.0.0.1",
+            servicePort
+        );
+
+        // Notify Parent of tunnel availability via existing RSS protocol
+        rssProtocol.sendMessage("TUNNEL_READY", Map.of(
+            "sessionId", sessionId,
+            "tunnelPort", allocatedPort
+        ));
+    }
+}
+```
 
 #### Benefits
 - **No credentials in Internet Zone** - UCM never receives any keys/certificates
@@ -84,6 +113,7 @@ This approach leverages the **existing SSH connection** that Gatekeeper already 
 - **Zero trust** - Internet Zone has zero network credentials
 - **Simplified audit** - All connections originate from trusted zone
 - **No customer impact** - Uses existing network infrastructure
+- **Security policy compliant** - PAS Server only receives SSH connections
 
 ## Integration Strategy (Current Approach)
 
@@ -330,41 +360,89 @@ public class SecureKeyManagementClient {
 
 ## Implementation Plan
 
-### Recommended Approach: Phased Enhancement
+### **RECOMMENDED APPROACH: Reverse Tunnel Architecture**
 
-#### Phase 1: Certificate-Based Authentication (Weeks 1-4) - RECOMMENDED
+Based on detailed feasibility analysis, the reverse tunnel approach is the clear winner:
+- **Highest security benefit** - Eliminates cross-zone credential distribution
+- **Uses existing infrastructure** - No customer firewall changes required
+- **Manageable implementation** - 8-12 weeks with existing SSH connections
+- **Backward compatible** - Can run parallel with current system
+
+#### **Phase 1: Reverse Tunnel Implementation (Weeks 1-8)**
+
+**Week 1-2: Core Infrastructure**
+1. Implement reverse tunnel capability in existing Gatekeeper SSH connection
+2. Add tunnel coordination to existing RSS protocol messages
+3. Create tunnel management service in Parent
+
+**Week 3-4: Parent Coordination**
+1. Modify Parent to coordinate reverse tunnels instead of generating SSH keys
+2. Update session establishment flow to provide tunnel endpoints
+3. Add tunnel health monitoring and management
+
+**Week 5-6: UCM Integration**
+1. Update UCM/LibRSSConnect to connect to Parent-provided tunnel endpoints
+2. Remove SSH key handling from connection establishment
+3. Implement connection retry logic for tunnel endpoints
+
+**Week 7-8: Feature Flag and Testing**
+1. Implement database-driven feature flag for gradual rollout
+2. Add dual-mode operation (old SSH keys + new reverse tunnels)
+3. Comprehensive testing and validation
+
+#### **Feature Flag Implementation for Backward Compatibility**
+```java
+// Database-driven feature flag for gradual rollout over 1+ years
+@Entity
+public class SystemConfiguration {
+    @Column(name = "reverse_tunnel_enabled")
+    private boolean reverseTunnelEnabled = false;
+
+    @Column(name = "reverse_tunnel_rollout_percentage")
+    private int rolloutPercentage = 0; // Start at 0%, gradually increase
+}
+
+@Service
+public class SessionEstablishmentService {
+
+    public void establishSession(SessionRequest request) {
+        if (shouldUseReverseTunnel(request)) {
+            establishSessionWithReverseTunnel(request);
+        } else {
+            establishSessionWithSSHKeys(request); // Current method
+        }
+    }
+
+    private boolean shouldUseReverseTunnel(SessionRequest request) {
+        SystemConfiguration config = configRepository.findCurrent();
+
+        if (!config.isReverseTunnelEnabled()) {
+            return false;
+        }
+
+        // Gradual rollout based on percentage
+        int hash = Math.abs(request.getSessionId().hashCode()) % 100;
+        return hash < config.getRolloutPercentage();
+    }
+}
+```
+
+#### **Rollout Strategy (12+ months)**
+1. **Month 1**: Deploy with feature flag disabled (0% rollout)
+2. **Month 2-3**: Enable for 5% of sessions, monitor performance
+3. **Month 4-6**: Gradually increase to 25% rollout
+4. **Month 7-9**: Increase to 75% rollout
+5. **Month 10-12**: Reach 100% rollout for new sessions
+6. **Month 12+**: Deprecate SSH key method once all UCM/Gatekeeper components upgraded
+
+### Alternative: Certificate-Based Authentication (Lower Priority)
+
+#### Phase 1: Certificate Implementation (Weeks 1-4) - IF BANDWIDTH PERMITS
 1. **Week 1-2**: Implement SSH certificate authority in Parent
 2. **Week 3**: Update UCM/LibRSSConnect to use certificates instead of keys
 3. **Week 4**: Testing and validation of certificate-based authentication
 
-#### Phase 2: Enhanced Security Features (Weeks 5-8) - OPTIONAL
-1. **Week 5-6**: Implement HSM integration for certificate signing
-2. **Week 7**: Add mutual TLS for certificate delivery
-3. **Week 8**: Implement certificate transparency logging
-
-#### Phase 3: Architectural Redesign (Weeks 9-20) - FUTURE
-1. **Week 9-12**: Design and implement reverse tunnel architecture
-2. **Week 13-16**: Migrate existing sessions to reverse tunnel model
-3. **Week 17-20**: Complete testing and production deployment
-
-### Alternative: Current System Enhancement
-
-#### Phase 1: Key Management Service Integration (Weeks 1-2)
-1. Define KeyManagementClient interface for existing service
-2. Implement secure client with mTLS
-3. Create HIPAA-compliant audit logging
-4. Build resilient client with fallback
-
-#### Phase 2: Parent Integration (Weeks 3-4)
-1. Replace SshKeyService with KeyManagementClient
-2. Migrate key generation logic to key service
-3. Update session establishment to use new API
-4. Implement local key caching
-
-#### Phase 3: Component Integration (Weeks 4-6)
-1. Update Gatekeeper key handling
-2. Integrate LibRSSConnect with key management
-3. End-to-end testing and validation
+**Note**: This provides incremental improvement but doesn't address the fundamental cross-zone credential distribution issue.
 
 ## Risk Assessment and Mitigation Analysis
 
@@ -417,30 +495,64 @@ public class SecureKeyManagementClient {
 - Automated rollback triggers based on error rates
 - Emergency key generation for service continuity
 
-## Conclusion and Recommendations
+## Detailed Feasibility Analysis Results
 
-### Current State Assessment
-The existing SSH key distribution model is **acceptable for production use** with effective mitigations in place:
-- Single-use ephemeral keys with 2-minute expiry
-- HTTPS delivery eliminating persistent key storage
-- Standard SSH tunnel security for persistent connections
-- Risk level reduced to MEDIUM through effective controls
+### **Reverse Tunnel Architecture: HIGH FEASIBILITY**
 
-### Recommended Next Steps
+#### **Pros vs Cons Analysis**
 
-#### Immediate (Optional Enhancement)
-**Certificate-Based Authentication** - Provides incremental security improvement with industry-standard approach. Recommended when development bandwidth is available.
+**Pros**:
+- ✅ **Eliminates cross-zone credential distribution** - No more SSH keys to Internet zone
+- ✅ **Uses existing infrastructure** - No new firewall rules needed
+- ✅ **Backward compatible** - Can run both systems in parallel with feature flags
+- ✅ **Security policy compliant** - PAS Server only receives SSH connections
+- ✅ **Gradual rollout** - Feature flag allows controlled deployment over 1+ years
+- ✅ **Simpler troubleshooting** - Fewer moving parts in connection establishment
+- ✅ **Better audit trail** - All connections originate from trusted Internal zone
 
-#### Strategic (Architectural Improvement)
-**Reverse Tunnel Architecture** - Eliminates cross-zone credential distribution entirely. Best long-term solution applying "subtract principle" to remove the fundamental issue.
+**Cons**:
+- ⚠️ **Additional latency** - +10-20ms for extra hop through Parent
+- ⚠️ **Parent becomes bottleneck** - All traffic flows through Parent port forwarding
+- ⚠️ **Implementation complexity** - Dual-mode operation during transition
+- ⚠️ **Connection coordination** - More complex session setup coordination
 
-#### Current Priority
-This issue has been **downgraded from HIGH to MEDIUM-LOW priority**. Focus immediate efforts on:
-1. Audit process separation (higher compliance impact)
-2. RSS protocol consolidation (higher development velocity impact)
-3. SSH key management improvements (when bandwidth permits)
+#### **Performance Impact Assessment**
+- **Latency**: +10-20ms (acceptable for security benefit)
+- **Scalability**: Parent already handles session coordination (existing bottleneck)
+- **Throughput**: No significant impact on data transfer rates
+- **Memory**: Moderate increase in Parent for tunnel management
 
-### Final Assessment
-The current implementation represents **good security engineering** that transforms a potentially critical vulnerability into manageable risk through effective mitigations. While architectural improvements are valuable, they are not urgent given the current risk posture.
+#### **Customer Impact Assessment**
+- **Firewall Changes**: ✅ **NONE REQUIRED** - Uses existing SSH connections
+- **Operational Changes**: ✅ **MINIMAL** - Transparent to end users
+- **Deployment Impact**: ✅ **LOW** - Feature flag enables gradual rollout
 
-This integration approach provides centralized key management while maintaining the performance and security requirements of the PAS system, with full HIPAA compliance and audit capabilities.
+### **Value Assessment: PROCEED WITH IMPLEMENTATION**
+
+#### **Security Value: HIGH**
+- **Eliminates fundamental security concern** - No more credentials in Internet zone
+- **Improves compliance posture** - Cleaner audit boundaries for HIPAA
+- **Reduces attack surface** - UCM becomes credential-free
+
+#### **Implementation Value: HIGH**
+- **Uses existing infrastructure** - No customer firewall changes required
+- **Manageable complexity** - 8-12 weeks with existing SSH connections
+- **Backward compatible** - Gradual rollout reduces deployment risk
+
+#### **Performance Cost: LOW**
+- **Minimal latency impact** - +10-20ms acceptable for security benefit
+- **Existing bottleneck** - Parent already coordinates sessions
+
+### **Final Recommendation: IMPLEMENT REVERSE TUNNEL ARCHITECTURE**
+
+**Rationale**: The security benefits of eliminating cross-zone credential distribution significantly outweigh the minimal performance cost, especially since:
+
+1. **No customer impact** - Uses existing Gatekeeper → PAS Server SSH connections
+2. **High feasibility** - Leverages existing infrastructure and protocols
+3. **Manageable implementation** - Clear 8-12 week development path
+4. **Backward compatibility** - Feature flag enables safe gradual rollout
+5. **Security policy compliant** - Aligns with PAS Server SSH connection constraints
+
+**Priority Revision**: While this was initially downgraded to MEDIUM-LOW priority, the discovery that it uses existing infrastructure and requires no customer firewall changes makes this a **HIGH-VALUE, LOW-RISK** improvement that should be prioritized when development bandwidth is available.
+
+This approach represents the optimal balance of security improvement, implementation feasibility, and operational impact for the PAS system architecture.
