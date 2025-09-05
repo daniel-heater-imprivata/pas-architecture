@@ -77,9 +77,18 @@ graph TB
 
 #### Key Interfaces
 - **HTTPS Web Interface**: Port 8443 for user access and administration
-- **RSS Protocol Server**: Port 7894 for component communication
+- **RSS Protocol Server**: Port 7894 for component communication (inbound only)
+- **SSH Server**: Port 22 for inbound SSH connections (NEVER initiates outbound SSH)
 - **Database Connection**: PostgreSQL/MySQL for persistent storage
 - **IPC Interface**: Unix domain sockets for audit process communication
+
+#### **Critical Security Constraint**
+**SSH Connection Policy**: The PAS Server operates under a strict security policy:
+- ✅ **Receives SSH connections** from UCM clients and Gatekeeper
+- ❌ **NEVER initiates SSH connections** to any other component
+- ✅ **Uses non-SSH protocols** (HTTPS, RSS) for outbound communication
+
+This constraint ensures security isolation and prevents the PAS Server from being used as a network pivot point.
 
 #### Technology Stack
 - **Framework**: Java Spring Boot 2.7+

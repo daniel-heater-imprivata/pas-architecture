@@ -252,6 +252,44 @@ graph TB
 
 ## Data Security and Encryption
 
+### SSH Connection Security Constraints
+
+#### **Critical Security Policy: SSH Connection Direction**
+The PAS system enforces strict SSH connection policies to maintain security boundaries:
+
+**Core Constraint**: PAS Server **NEVER initiates SSH connections** to any other component.
+
+**Allowed SSH Connection Patterns**:
+```mermaid
+graph TB
+    subgraph "Internet Zone"
+        UCM[UCM Clients]
+    end
+    subgraph "DMZ Zone"
+        PAS[PAS Server]
+        Audit[Audit Process]
+    end
+    subgraph "Internal Zone"
+        GK[Gatekeeper]
+    end
+
+    UCM -.->|SSH Inbound| PAS
+    UCM -.->|SSH Inbound| Audit
+    GK -.->|SSH Inbound| PAS
+
+    classDef allowed fill:#C8E6C9,stroke:#388E3C
+    classDef server fill:#E3F2FD,stroke:#1976D2
+
+    class UCM,GK allowed
+    class PAS,Audit server
+```
+
+**Security Benefits**:
+- **Prevents pivot attacks** - PAS Server cannot be used to reach other systems
+- **Clear audit boundaries** - All SSH connections are inbound to controlled environment
+- **Reduced attack surface** - Limits outbound connection capabilities
+- **Compliance alignment** - Supports HIPAA audit requirements
+
 ### Encryption in Transit
 ```mermaid
 graph TB

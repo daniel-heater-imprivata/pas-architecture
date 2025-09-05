@@ -310,9 +310,37 @@ chmod 750 /var/lib/pas/
 ```
 
 ### Network Security
+
+#### **SSH Connection Policy Constraints**
+The PAS deployment model enforces strict SSH connection policies:
+
+**Core Security Constraint**:
+- **PAS Server CANNOT initiate SSH connections** to any other component
+- **PAS Server ONLY receives inbound SSH connections** from authorized components
+- **All outbound connections from PAS Server** must use non-SSH protocols (HTTPS, RSS, etc.)
+
+**Deployment Implications**:
+- Network architecture must accommodate inbound-only SSH to PAS Server
+- Firewall rules must allow SSH connections TO PAS Server, not FROM PAS Server
+- Component placement must ensure proper connection flow direction
+
 ```yaml
-# Network security configuration
+# Network security configuration with SSH constraints
 network_security:
+  ssh_policy:
+    pas_server_outbound_ssh: false  # CRITICAL: Never allow outbound SSH
+    inbound_ssh_allowed:
+      - source: "UCM Clients"
+        destination: "PAS Server"
+        purpose: "User session tunnels"
+      - source: "Gatekeeper"
+        destination: "PAS Server"
+        purpose: "RSS protocol communication"
+    outbound_ssh_prohibited:
+      - source: "PAS Server"
+        destination: "Any component"
+        reason: "Security policy violation"
+
   firewall_rules:
     inbound:
       - port: 8443

@@ -214,6 +214,25 @@ graph LR
 
 ## Security Model
 
+### Network Security Constraints
+
+#### **SSH Connection Policy**
+The PAS system operates under strict SSH connection policies to maintain security boundaries:
+
+**Critical Constraint**: The PAS Server (Parent) **MAY NOT initiate SSH connections** to any other component. It can only receive inbound SSH connections.
+
+**Rationale**:
+- **Security Isolation**: Prevents PAS Server from being used as a pivot point for attacks
+- **Audit Compliance**: All SSH connections are inbound to the controlled DMZ environment
+- **Network Security**: Reduces attack surface by limiting outbound connections
+- **Operational Security**: Clear security boundaries with controlled access patterns
+
+**Connection Patterns**:
+- ✅ **UCM Clients → PAS Server**: User session tunnels (Internet → DMZ)
+- ✅ **Gatekeeper → PAS Server**: RSS protocol communication (Internal → DMZ)
+- ✅ **Components → PAS Server**: System coordination (Various → DMZ)
+- ❌ **PAS Server → Any Component**: Prohibited by security policy
+
 ### Authentication
 - **Multi-Factor Authentication**: Integration with customer identity systems
 - **Certificate-Based**: SSH certificates for component authentication

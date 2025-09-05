@@ -290,6 +290,44 @@ key_management:
 
 ## Network Security
 
+### SSH Connection Policy Constraints
+
+#### **Critical Security Constraint: PAS Server SSH Connection Policy**
+The PAS Server (Parent) operates under a strict security policy regarding SSH connections:
+
+- ✅ **PAS Server MAY receive SSH connections** from other components
+- ❌ **PAS Server MAY NOT initiate SSH connections** to any other component
+- ✅ **Other components initiate SSH connections TO PAS Server**
+
+This constraint ensures:
+- **Clear security boundaries** - PAS Server never reaches out to potentially compromised zones
+- **Audit compliance** - All SSH connections are inbound to the controlled DMZ environment
+- **Network security** - Prevents PAS Server from being used as a pivot point for attacks
+- **Operational security** - Reduces attack surface by limiting outbound connections
+
+#### **SSH Connection Patterns**
+```yaml
+# Allowed SSH connection patterns
+ssh_connections:
+  allowed:
+    - source: "UCM Clients (Internet Zone)"
+      destination: "PAS Server/Audit (DMZ)"
+      purpose: "User session tunnels"
+
+    - source: "Gatekeeper (Internal Zone)"
+      destination: "PAS Server (DMZ)"
+      purpose: "RSS protocol communication"
+
+    - source: "Other PAS Components"
+      destination: "PAS Server (DMZ)"
+      purpose: "System coordination"
+
+  prohibited:
+    - source: "PAS Server (DMZ)"
+      destination: "Any external component"
+      reason: "Security policy violation"
+```
+
 ### Network Segmentation
 ```mermaid
 graph TB

@@ -64,19 +64,26 @@ ssh-keygen -s /etc/pas/ca_key -I "user@session" -n user -V +2m user_cert.pub
 ```
 
 ### Option 2: Reverse Tunnel Architecture (Fundamental Redesign)
-Eliminate cross-zone credential distribution entirely using reverse tunnels.
+Eliminate cross-zone credential distribution entirely using reverse tunnels over existing SSH connections.
 
 #### Implementation Approach
 ```
 Current: UCM receives credentials → Connects to Internal Zone
-Proposed: Gatekeeper initiates reverse tunnel → UCM connects without credentials
+Proposed: Gatekeeper creates reverse tunnel → UCM connects without credentials
 ```
+
+#### **Key Advantage: Uses Existing Infrastructure**
+This approach leverages the **existing SSH connection** that Gatekeeper already makes to PAS Server:
+- **No new firewall rules required** - Uses existing Internal → DMZ SSH (port 22)
+- **Complies with SSH policy** - PAS Server receives (not initiates) SSH connections
+- **Existing RSS protocol** - Runs over the same SSH connection Gatekeeper already uses
 
 #### Benefits
 - **No credentials in Internet Zone** - UCM never receives any keys/certificates
-- **Internal Zone controls** - Gatekeeper initiates all connections
+- **Internal Zone controls** - Gatekeeper initiates all connections (already does this)
 - **Zero trust** - Internet Zone has zero network credentials
 - **Simplified audit** - All connections originate from trusted zone
+- **No customer impact** - Uses existing network infrastructure
 
 ## Integration Strategy (Current Approach)
 
