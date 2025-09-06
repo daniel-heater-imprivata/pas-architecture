@@ -278,13 +278,45 @@ graph TB
 ### 5. LibRSSConnect
 
 #### Purpose and Scope
-C++ library providing RSS protocol client implementation for UCM and other native applications.
+C++ library providing RSS protocol client implementation for UCM and other native applications. **Manages four distinct SSH session types** with complex coordination and lifecycle management.
+
+#### **Multi-Session Architecture**
+LibRSSConnect implements a sophisticated **four-session SSH architecture**:
+
+1. **CM (Connection Manager) Session** (`CmSession` class)
+   - **Purpose**: Primary RSS protocol communication
+   - **SSH User**: `rss_scm`
+   - **Credentials**: Pre-configured `connectKey`
+   - **Port Forward**: Local port 7894 → Remote port 7894 (RSS protocol)
+   - **Lifetime**: Entire UCM session duration
+   - **Recovery**: No automatic recovery - requires UCM restart
+
+2. **User Session** (`UserSession` class)
+   - **Purpose**: User-specific tunneling and port forwarding
+   - **SSH User**: `rss_user_session`
+   - **Credentials**: Ephemeral `ckValue`/`ckValueEC` from ATTACHREQUEST
+   - **Port Forward**: Local port 7891 → Remote port 7891 (user session)
+   - **Lifetime**: Individual user session duration
+   - **Recovery**: Can reconnect if CM session intact
+
+3. **Nexus Session** (`nexusSshSession_` in UserSession)
+   - **Purpose**: Seamless CPAM/VPAM connections
+   - **SSH User**: `rss_user_session`
+   - **Credentials**: Ephemeral keys from SEAMLESSATTACH
+   - **Target**: Different PAS servers (cross-system)
+   - **Limitation**: Cannot be reverse tunneled through single Gatekeeper
+
+4. **Application Port Forwards** (Multiple per User Session)
+   - **Purpose**: Application-specific port forwarding
+   - **Management**: Created/destroyed dynamically via RSS commands
+   - **Types**: Both local (`SshPortForwardL`) and reverse (`SshPortForwardR`)
 
 #### Core Responsibilities
+- **Multi-Session SSH Management**: Coordinate four distinct SSH session types
 - **RSS Protocol Client**: Complete RSS protocol implementation in C++
-- **SSH Tunnel Management**: Establish and manage SSH tunnels
-- **Session State Management**: Track session state and handle reconnections
-- **Error Handling**: Robust error handling and recovery mechanisms
+- **Complex Port Forwarding**: Manage multiple concurrent port forwards across sessions
+- **Session Lifecycle Management**: Handle creation, coordination, and cleanup of multiple sessions
+- **Error Handling and Recovery**: Session-specific recovery patterns and error handling
 - **Cross-Platform Support**: Support for Windows, macOS, and Linux
 
 #### Technical Architecture

@@ -199,17 +199,67 @@ sequenceDiagram
     Note over U,S: Secure session established
 ```
 
+### **Multi-Session SSH Architecture**
+
+The PAS system employs a sophisticated **four-session SSH architecture** for different purposes:
+
+#### **SSH Session Types**
+1. **CM (Connection Manager) Session**
+   - **Purpose**: RSS protocol communication and coordination
+   - **SSH User**: `rss_scm`
+   - **Credentials**: Pre-configured `connectKey`
+   - **Port**: 7894 (RSS protocol)
+
+2. **User Session**
+   - **Purpose**: User-specific tunneling and port forwarding
+   - **SSH User**: `rss_user_session`
+   - **Credentials**: Ephemeral `ckValue`/`ckValueEC` (2-minute expiry)
+   - **Port**: 7891 (user session)
+
+3. **Nexus Session (CPAM/VPAM Bridge)**
+   - **Purpose**: Cross-system seamless connections
+   - **SSH User**: `rss_user_session`
+   - **Credentials**: Ephemeral keys via SEAMLESSATTACH
+   - **Scope**: Connects to different PAS servers
+
+4. **Gatekeeper Application Sessions**
+   - **Purpose**: Application-specific connections
+   - **SSH User**: `rss_gk_session`
+   - **Credentials**: `sessionPrivateKey` from Parent
+   - **Management**: Distributed via RSS CMD_CONNECT
+
 ### Traffic Flow
 ```mermaid
-graph LR
-    A[User Application] --> B[LibRSSConnect]
-    B --> C[SSH Tunnel]
-    C --> D[Audit Process]
-    D --> E[Gatekeeper]
-    E --> F[Target Service]
-    
-    D --> G[Audit Logs]
-    D --> H[Compliance Reports]
+graph TB
+    subgraph "Internet Zone"
+        UCM[UCM Client]
+        App[User Application]
+    end
+    subgraph "DMZ Zone"
+        Parent[PAS Server]
+        Audit[Audit Process]
+    end
+    subgraph "Internal Zone"
+        GK[Gatekeeper]
+        Service[Target Service]
+    end
+
+    App --> UCM
+    UCM -.->|CM Session (rss_scm)| Parent
+    UCM -.->|User Session (rss_user_session)| Audit
+    UCM -.->|Nexus Session (optional)| Parent
+    GK -.->|RSS Protocol| Parent
+    GK -.->|App Session (rss_gk_session)| Parent
+    Audit --> GK
+    GK --> Service
+
+    classDef internet fill:#FFE5E5,stroke:#D32F2F
+    classDef dmz fill:#FFF3E0,stroke:#F57C00
+    classDef internal fill:#E8F5E8,stroke:#4CAF50
+
+    class UCM,App internet
+    class Parent,Audit dmz
+    class GK,Service internal
 ```
 
 ## Security Model
