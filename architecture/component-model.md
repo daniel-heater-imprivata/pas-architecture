@@ -46,319 +46,107 @@ graph TB
 
 ### 1. PAS Server (Parent)
 
-#### Purpose and Scope
 Central management server providing web interface, user management, and system coordination.
 
-#### Core Responsibilities
-- **Web Interface**: HTTPS-based user interface for access requests and administration
-- **User Authentication**: Integration with customer identity systems (LDAP, AD, SAML)
-- **Session Management**: Coordinate privileged access sessions across components
-- **Configuration Management**: Centralized configuration for all system components
-- **API Gateway**: REST APIs for programmatic access and integration
+**Core Responsibilities**:
+- Web-based user interface for access requests and administration
+- User authentication and integration with customer identity systems
+- Session management and coordination across system components
+- Centralized configuration management for all PAS components
+- REST APIs for programmatic access and third-party integration
 
-#### Technical Architecture
-```mermaid
-graph TB
-    subgraph "PAS Server Internal Architecture"
-        WebUI[🌐 Web Interface<br/>Angular/React Frontend]
-        RestAPI[🔌 REST API<br/>Spring Boot Controllers]
-        AuthService[🔐 Authentication Service<br/>LDAP/SAML Integration]
-        SessionMgr[📋 Session Manager<br/>Session Lifecycle]
-        ConfigMgr[⚙️ Configuration Manager<br/>System Configuration]
-        AuditCoord[📊 Audit Coordinator<br/>IPC with Audit Process]
-    end
-    
-    WebUI --> RestAPI
-    RestAPI --> AuthService
-    RestAPI --> SessionMgr
-    RestAPI --> ConfigMgr
-    SessionMgr --> AuditCoord
-```
+**Technology Stack**: Java Spring Boot, PostgreSQL/MySQL, Angular/React frontend
 
-#### Key Interfaces
-- **HTTPS Web Interface**: Port 8443 for user access and administration
-- **RSS Protocol Server**: Port 7894 for component communication (inbound only)
-- **SSH Server**: Port 22 for inbound SSH connections (NEVER initiates outbound SSH)
-- **Database Connection**: PostgreSQL/MySQL for persistent storage
-- **IPC Interface**: Unix domain sockets for audit process communication
-
-#### **Critical Security Constraint**
-**SSH Connection Policy**: The PAS Server operates under a strict security policy:
-- ✅ **Receives SSH connections** from UCM clients and Gatekeeper
-- ❌ **NEVER initiates SSH connections** to any other component
-- ✅ **Uses non-SSH protocols** (HTTPS, RSS) for outbound communication
-
-This constraint ensures security isolation and prevents the PAS Server from being used as a network pivot point.
-
-#### Technology Stack
-- **Framework**: Java Spring Boot 2.7+
-- **Web Server**: Embedded Tomcat
-- **Database**: PostgreSQL 12+ or MySQL 8+
-- **Security**: Spring Security with SAML/LDAP integration
-- **Monitoring**: Micrometer with Prometheus metrics
-
-#### Current Issues and Improvements
-**Issues**:
-- ConnectionController handles too many responsibilities
-- Tight coupling with audit components
-- Limited horizontal scaling capability
-
-**Planned Improvements**:
-- Split ConnectionController into focused services
-- Implement IPC communication with audit process
-- Add support for horizontal scaling with load balancing
+**Detailed Documentation**: See [PAS Server (Parent) Architecture](parent-server.md)
 
 ### 2. Audit Process
 
-#### Purpose and Scope
 Real-time session recording and analysis for compliance and security monitoring.
 
-#### Core Responsibilities
-- **Protocol Interception**: Capture and analyze SSH, RDP, HTTP, VNC traffic
-- **Session Recording**: Real-time recording with encryption and compression
-- **Credential Injection**: Seamless authentication for audited sessions
-- **Compliance Reporting**: Generate audit reports for regulatory compliance
-- **Threat Detection**: Real-time analysis for suspicious activity
+**Core Responsibilities**:
+- Protocol interception and analysis for SSH, RDP, HTTP, VNC traffic
+- Real-time session recording with encryption and compression
+- Credential injection for seamless authentication
+- Multi-regulatory compliance reporting and audit trail generation
+- Real-time threat detection and suspicious activity analysis
 
-#### Technical Architecture
-```mermaid
-graph TB
-    subgraph "Audit Process Architecture"
-        AuditCoord[📊 Audit Coordinator<br/>Session Management]
-        SSHAudit[🔒 SSH Audit Service<br/>SSH Traffic Analysis]
-        HTTPAudit[🌐 HTTP Audit Service<br/>HTTP/HTTPS Proxy]
-        RDPAudit[🖥️ RDP Audit Service<br/>RDP Session Recording]
-        VNCAudit[👁️ VNC Audit Service<br/>VNC Session Recording]
-        Storage[💾 Audit Storage<br/>Encrypted Log Storage]
-    end
-    
-    AuditCoord --> SSHAudit
-    AuditCoord --> HTTPAudit
-    AuditCoord --> RDPAudit
-    AuditCoord --> VNCAudit
-    SSHAudit --> Storage
-    HTTPAudit --> Storage
-    RDPAudit --> Storage
-    VNCAudit --> Storage
-```
+**Technology Stack**: Java with protocol-specific libraries, custom RDP implementation
 
-#### Key Interfaces
-- **IPC Interface**: Unix domain sockets for Parent communication
-- **SSH Tunnels**: Encrypted tunnels for client connections
-- **Proxy Interfaces**: Protocol-specific proxy endpoints
-- **Storage Interface**: Encrypted audit log storage
-
-#### Technology Stack
-- **Framework**: Java with protocol-specific libraries
-- **SSH Library**: JSch or Apache MINA SSHD
-- **HTTP Proxy**: Netty or Apache HttpComponents
-- **RDP Library**: Custom RDP protocol implementation
-- **Encryption**: AES-256 for audit log encryption
-
-#### Current Issues and Improvements
-**Issues**:
-- Tight Spring integration with Parent
-- Mixed protocol handling in single services
-- Limited independent testing capability
-
-**Planned Improvements**:
-- Separate process with IPC communication
-- Protocol-specific audit services
-- Independent testing and deployment
+**Detailed Documentation**: See [Audit System Architecture](audit-system.md)
 
 ### 3. Gatekeeper
 
-#### Purpose and Scope
 Service proxy and access enforcement point within customer internal network.
 
-#### Core Responsibilities
-- **Service Proxy**: Proxy connections to target services (SSH, RDP, HTTP)
-- **Access Enforcement**: Enforce time-based and policy-based access controls
-- **Session Coordination**: Coordinate with audit process for session recording
-- **Application Integration**: Manage application-specific configurations
-- **Health Monitoring**: Monitor target service availability and health
+**Core Responsibilities**:
+- Proxy connections to target services (SSH, RDP, HTTP, databases)
+- Enforce time-based and policy-based access controls
+- Coordinate with audit process for session recording
+- Manage application-specific configurations and policies
+- Monitor target service availability and health
 
-#### Technical Architecture
-```mermaid
-graph TB
-    subgraph "Gatekeeper Architecture"
-        GKCore[🚪 Gatekeeper Core<br/>Main Service Logic]
-        SSHProxy[🔒 SSH Proxy<br/>SSH Connection Proxy]
-        RDPProxy[🖥️ RDP Proxy<br/>RDP Connection Proxy]
-        HTTPProxy[🌐 HTTP Proxy<br/>HTTP/HTTPS Proxy]
-        PolicyEngine[📋 Policy Engine<br/>Access Control]
-        HealthMonitor[💓 Health Monitor<br/>Service Monitoring]
-    end
-    
-    GKCore --> SSHProxy
-    GKCore --> RDPProxy
-    GKCore --> HTTPProxy
-    GKCore --> PolicyEngine
-    GKCore --> HealthMonitor
-```
+**Technology Stack**: Go (Gatekeeper 2.0) / Java (Legacy), YAML configuration
 
-#### Key Interfaces
-- **RSS Protocol Client**: Connection to PAS Server for coordination
-- **Service Proxies**: Protocol-specific proxy interfaces
-- **Target Services**: Connections to actual services (SSH, RDP, HTTP)
-- **Configuration Interface**: Local configuration management
-
-#### Technology Stack
-- **Framework**: Java Spring Boot
-- **Proxy Libraries**: Protocol-specific proxy implementations
-- **RSS Client**: Connect library for RSS protocol communication
-- **Configuration**: YAML-based configuration with hot reload
-
-#### Current Issues and Improvements
-**Issues**:
-- Embedded RSS protocol implementation
-- Limited configuration management
-- Complex deployment procedures
-
-**Planned Improvements**:
-- Use Connect library for RSS protocol
-- Centralized configuration management
-- Simplified deployment with RPM packages
+**Detailed Documentation**: See [Gatekeeper Architecture](gatekeeper.md)
 
 ### 4. UCM (Universal Connection Manager)
 
-#### Purpose and Scope
 Desktop client application providing user interface for secure access to privileged systems.
 
-#### Core Responsibilities
-- **User Interface**: Desktop application for access requests and session management
-- **Application Launching**: Launch and manage client applications (RDP, SSH clients)
-- **Local Port Forwarding**: Manage local port forwards for application connections
-- **Session Management**: Track and manage active privileged sessions
-- **Update Management**: Automatic updates and configuration synchronization
+**Core Responsibilities**:
+- Desktop application for access requests and session management
+- Launch and manage client applications (RDP, SSH clients)
+- Local port forwarding and connection management
+- Track and manage active privileged sessions
+- Automatic updates and configuration synchronization
 
-#### Technical Architecture
-```mermaid
-graph TB
-    subgraph "UCM Client Architecture"
-        UCMUI[🖥️ UCM UI<br/>Qt Desktop Interface]
-        SessionMgr[📋 Session Manager<br/>Local Session Tracking]
-        AppLauncher[🚀 Application Launcher<br/>Client App Management]
-        PortMgr[🔌 Port Manager<br/>Local Port Forwarding]
-        UpdateMgr[🔄 Update Manager<br/>Auto-Update System]
-        LibRSSInt[📚 LibRSS Integration<br/>Protocol Communication]
-    end
-    
-    UCMUI --> SessionMgr
-    UCMUI --> AppLauncher
-    SessionMgr --> PortMgr
-    SessionMgr --> LibRSSInt
-    AppLauncher --> PortMgr
-    UpdateMgr --> UCMUI
-```
+**Technology Stack**: C++ with Qt framework, cross-platform support
 
-#### Key Interfaces
-- **LibRSSConnect API**: C API for RSS protocol communication
-- **System Integration**: OS-specific APIs for application launching
-- **File System**: Local staging and temporary file management
-- **Network**: Local port binding and forwarding
-
-#### Technology Stack
-- **Framework**: Qt 5.15+ for cross-platform desktop development
-- **Language**: C++ with Qt framework
-- **Platform Support**: Windows, macOS, Linux
-- **Integration**: LibRSSConnect for protocol communication
-
-#### Current Issues and Improvements
-**Issues**:
-- Tight coupling with LibRSSConnect
-- Complex installer management
-- Limited configuration options
-
-**Planned Improvements**:
-- Unified build with LibRSSConnect
-- Simplified installer with auto-update
-- Enhanced configuration management
+**Detailed Documentation**: See [UCM Client Architecture](ucm-client.md)
 
 ### 5. LibRSSConnect
 
-#### Purpose and Scope
-C++ library providing RSS protocol client implementation for UCM and other native applications. **Manages four distinct SSH session types** with complex coordination and lifecycle management.
+C++ library providing RSS protocol client implementation for UCM and other native applications.
 
-#### **Multi-Session Architecture**
-LibRSSConnect implements a sophisticated **four-session SSH architecture**:
+**Core Responsibilities**:
+- RSS protocol client implementation in C++
+- Multi-session SSH management and coordination
+- Cross-platform support for Windows, macOS, and Linux
+- C API interface for integration with client applications
+- Complex port forwarding and session lifecycle management
 
-1. **CM (Connection Manager) Session** (`CmSession` class)
-   - **Purpose**: Primary RSS protocol communication
-   - **SSH User**: `rss_scm`
-   - **Credentials**: Pre-configured `connectKey`
-   - **Port Forward**: Local port 7894 → Remote port 7894 (RSS protocol)
-   - **Lifetime**: Entire UCM session duration
-   - **Recovery**: No automatic recovery - requires UCM restart
+**Technology Stack**: C++ with C API, libssh2, CMake build system
 
-2. **User Session** (`UserSession` class)
-   - **Purpose**: User-specific tunneling and port forwarding
-   - **SSH User**: `rss_user_session`
-   - **Credentials**: Ephemeral `ckValue`/`ckValueEC` from ATTACHREQUEST
-   - **Port Forward**: Local port 7891 → Remote port 7891 (user session)
-   - **Lifetime**: Individual user session duration
-   - **Recovery**: Can reconnect if CM session intact
+**Detailed Documentation**: See [LibRSSConnect Architecture](librssconnect.md)
 
-3. **Nexus Session** (`nexusSshSession_` in UserSession)
-   - **Purpose**: Seamless CPAM/VPAM connections
-   - **SSH User**: `rss_user_session`
-   - **Credentials**: Ephemeral keys from SEAMLESSATTACH
-   - **Target**: Different PAS servers (cross-system)
-   - **Limitation**: Cannot be reverse tunneled through single Gatekeeper
+### 6. Connect
 
-4. **Application Port Forwards** (Multiple per User Session)
-   - **Purpose**: Application-specific port forwarding
-   - **Management**: Created/destroyed dynamically via RSS commands
-   - **Types**: Both local (`SshPortForwardL`) and reverse (`SshPortForwardR`)
+Java-based protocol implementation providing comprehensive RSS protocol support and client connectivity.
 
-#### Core Responsibilities
-- **Multi-Session SSH Management**: Coordinate four distinct SSH session types
-- **RSS Protocol Client**: Complete RSS protocol implementation in C++
-- **Complex Port Forwarding**: Manage multiple concurrent port forwards across sessions
-- **Session Lifecycle Management**: Handle creation, coordination, and cleanup of multiple sessions
-- **Error Handling and Recovery**: Session-specific recovery patterns and error handling
-- **Cross-Platform Support**: Support for Windows, macOS, and Linux
+**Core Responsibilities**:
+- Complete and authoritative RSS protocol implementation
+- Java applet and desktop client applications
+- Advanced protocol features and extensions
+- Integration libraries for third-party applications
+- Reference implementation for protocol enhancements
 
-#### Technical Architecture
-```mermaid
-graph TB
-    subgraph "LibRSSConnect Architecture"
-        RSSClient[📡 RSS Client<br/>Protocol Implementation]
-        SSHTunnel[🔒 SSH Tunnel Manager<br/>SSH Connection Management]
-        SessionState[📋 Session State<br/>State Management]
-        ErrorHandler[⚠️ Error Handler<br/>Error Recovery]
-        PlatformAPI[🔧 Platform API<br/>OS-Specific Functions]
-    end
-    
-    RSSClient --> SSHTunnel
-    RSSClient --> SessionState
-    RSSClient --> ErrorHandler
-    SSHTunnel --> PlatformAPI
-    ErrorHandler --> SessionState
-```
+**Technology Stack**: Java 8+, Maven, Swing UI, Java NIO networking
 
-#### Key Interfaces
-- **C API**: C interface for integration with UCM and other applications
-- **SSH Library**: Integration with SSH client libraries
-- **Network API**: Cross-platform networking interfaces
-- **Platform APIs**: OS-specific system integration
+**Detailed Documentation**: See [Connect Architecture](connect.md)
 
-#### Technology Stack
-- **Language**: C++ with C API interface
-- **SSH Library**: libssh2 or similar cross-platform SSH library
-- **Build System**: CMake for cross-platform builds
-- **Platform Support**: Windows (MSVC), macOS (Clang), Linux (GCC)
+### 7. RDP Converter
 
-#### Current Issues and Improvements
-**Issues**:
-- Duplicates Connect functionality
-- Limited protocol features compared to Java implementation
-- Complex build and deployment
+Specialized component for converting RDP audit files into video formats for playback and analysis.
 
-**Planned Improvements**:
-- Consolidate with Connect library
-- Enhanced protocol feature support
-- Simplified build and deployment process
+**Core Responsibilities**:
+- Parse proprietary audit file formats from RDP sessions
+- Convert audit data into standard video formats (MP4, AVI)
+- Handle audio streams and metadata extraction
+- Video compression and quality optimization
+
+**Technology Stack**: C/C++, FFmpeg, FreeRDP, CMake build system
+
+**Detailed Documentation**: See [RDP Converter Architecture](rdp-converter.md)
 
 ## Component Interaction Patterns
 

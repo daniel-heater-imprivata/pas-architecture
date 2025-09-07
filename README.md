@@ -16,12 +16,19 @@ The PAS system provides secure privileged access management for highly regulated
 
 ## 📚 Documentation Structure
 
-### Core Architecture
+### System Architecture
 - **[System Overview](architecture/system-overview.md)** - High-level architecture and component relationships
 - **[Component Model](architecture/component-model.md)** - Detailed component analysis and responsibilities
-- **[Audit System](architecture/audit-system.md)** - Real-time protocol manipulation and session recording
 - **[Data Flow](architecture/data-flow.md)** - End-to-end data flow and session management
-- **[IronRDP Integration](architecture/ironrdp-integration.md)** - Modern RDP protocol implementation analysis
+
+### Core Components
+- **[PAS Server (Parent)](architecture/parent-server.md)** - Central management server and web interface
+- **[Audit System](architecture/audit-system.md)** - Real-time protocol manipulation and session recording
+- **[Gatekeeper](architecture/gatekeeper.md)** - Service proxy and access enforcement
+- **[UCM Client](architecture/ucm-client.md)** - Desktop client application
+- **[LibRSSConnect](architecture/librssconnect.md)** - C++ protocol library
+- **[Connect](architecture/connect.md)** - Java protocol implementation
+- **[RDP Converter](architecture/rdp-converter.md)** - Audit file video conversion
 
 ### Technical Specifications
 - **[RSS Protocol](specifications/rss-protocol.md)** - Custom RSS protocol specification and implementation
@@ -32,13 +39,8 @@ The PAS system provides secure privileged access management for highly regulated
 - **[Audit Race Condition](architecture/audit-race-condition.md)** - Analysis of long-standing audit linking issues
 - **[PCAP Analysis](architecture/pcap-analysis.md)** - Network packet capture alternative assessment
 
-### Implementation Guidance
-- **[Audit Separation Strategy](recommendations/audit-separation.md)** - Proposed audit process separation approach
-- **[Integrated Audit Web Strategy](recommendations/integrated-audit-web-strategy.md)** - Comprehensive audit modernization and web client delivery proposal
-- **[Key Management Integration](recommendations/key-management.md)** - Integrate with existing key management service
-- **[Protocol Optimization](recommendations/protocol-optimization.md)** - RSS protocol improvements
-- **[Monitoring Strategy](recommendations/monitoring.md)** - HIPAA-compliant monitoring approach
-- **[Configuration Management](recommendations/configuration.md)** - RPM-compatible configuration strategy
+### Recommendations
+See **[Recommendations](recommendations/)** for proposed improvements and future enhancements.
 
 ### Visual Documentation
 Visual diagrams are embedded within documents using Mermaid syntax for maintainability and version control integration.
@@ -91,17 +93,17 @@ Visual diagrams are embedded within documents using Mermaid syntax for maintaina
 ### For Architects
 1. Start with [System Overview](architecture/system-overview.md) for high-level understanding
 2. Review [Component Model](architecture/component-model.md) for detailed component analysis
-3. Examine [Current State Analysis](analysis/current-state.md) for improvement opportunities
+3. Examine individual component pages for specific implementation details
 
 ### For Developers
 1. Review [RSS Protocol Specification](specifications/rss-protocol.md) for protocol details
 2. Study [Component Model](architecture/component-model.md) for implementation guidance
-3. Check [Improvement Recommendations](analysis/recommendations.md) for development priorities
+3. Check [Recommendations](recommendations/) for development priorities and proposals
 
 ### For Operations
 1. Review [Deployment Model](specifications/deployment-model.md) for deployment procedures
-2. Study [Configuration Management](recommendations/configuration.md) for operational guidance
-3. Examine [Monitoring Strategy](recommendations/monitoring.md) for observability setup
+2. Study component-specific documentation for operational guidance
+3. Check [Recommendations](recommendations/) for operational improvements
 
 ## 📊 System Metrics
 
@@ -112,7 +114,7 @@ Visual diagrams are embedded within documents using Mermaid syntax for maintaina
 - **Geographic Distribution**: Multi-site deployment support
 
 ### Compliance and Security
-- **HIPAA Compliance**: Full compliance with healthcare privacy requirements
+- **Multi-Regulatory Compliance**: HIPAA, PCI DSS, SOX, GDPR, CJIS, and other frameworks
 - **Audit Retention**: Configurable retention periods (90+ days typical)
 - **Encryption Standards**: AES-256 encryption for all data
 - **Access Controls**: Role-based access with fine-grained permissions
