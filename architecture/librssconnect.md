@@ -13,7 +13,7 @@ LibRSSConnect is a C++ library that provides RSS protocol communication capabili
 - **Error Recovery**: Robust error handling and connection recovery
 
 ### Client Integration
-- **C API**: Clean C interface for integration with various client applications
+- **C API**: Clean C only interface (`include` directory) for integration with various language SDKs.
 - **Cross-Platform**: Support for Windows, macOS, and Linux platforms
 - **Thread Safety**: Thread-safe implementation for multi-threaded applications
 - **Memory Management**: Efficient memory management with minimal leaks
@@ -30,7 +30,7 @@ LibRSSConnect is a C++ library that provides RSS protocol communication capabili
 ### Module Structure
 ```
 librssconnect/
-├── include/            # Public header files and C API
+├── include/           # Public header files and C API
 ├── src/               # C++ implementation source files
 ├── test/              # Unit tests and integration tests
 ├── docs/              # Documentation and API reference
@@ -162,7 +162,7 @@ install(FILES ${HEADERS} DESTINATION include/librssconnect)
 - **Version Pinning**: Specific dependency versions for reproducible builds
 
 ### Testing Strategy
-- **Unit Tests**: Comprehensive unit test coverage with Google Test
+- **Unit Tests**: Comprehensive unit test coverage with Catch2
 - **Integration Tests**: Integration tests with mock servers
 - **Performance Tests**: Performance benchmarking and regression testing
 - **Platform Tests**: Automated testing across all supported platforms
