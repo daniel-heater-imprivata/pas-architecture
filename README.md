@@ -1,14 +1,15 @@
 # PAS System Architecture Documentation
 
-This repository contains comprehensive architecture documentation for the Privileged Access Security (PAS) system, a healthcare-focused privileged access management solution designed for HIPAA-compliant environments.
+This repository contains comprehensive architecture documentation for the Privileged Access Security (PAS) system, a multi-industry privileged access management solution designed for highly regulated environments including healthcare, financial services, law enforcement, gaming, and government sectors.
 
 ## 🏥 System Overview
 
-The PAS system provides secure privileged access management for healthcare organizations, enabling controlled access to critical systems while maintaining comprehensive audit trails and HIPAA compliance. The system operates in on-premises and private cloud environments with strict data privacy requirements.
+The PAS system provides secure privileged access management for highly regulated organizations across multiple industries, enabling controlled access to critical systems while maintaining comprehensive audit trails and regulatory compliance. The system operates in on-premises and private cloud environments with strict data privacy and security requirements.
 
 ### Key Characteristics
-- **Healthcare-Focused**: Designed specifically for HIPAA-compliant environments
-- **On-Premises Deployment**: RPM-based deployment to customer sites
+- **Multi-Industry Compliance**: Supports HIPAA, PCI DSS, SOX, GDPR, and various regulatory frameworks
+- **Global Deployment**: Serves customers across North America, Europe, and international markets
+- **On-Premises Deployment**: RPM-based deployment to customer sites with data sovereignty
 - **Zero-Trust Architecture**: All access is authenticated, authorized, and audited
 - **Multi-Protocol Support**: SSH, RDP, HTTP/HTTPS, VNC, and custom protocols
 - **Real-Time Auditing**: Complete session recording and analysis
@@ -18,31 +19,29 @@ The PAS system provides secure privileged access management for healthcare organ
 ### Core Architecture
 - **[System Overview](architecture/system-overview.md)** - High-level architecture and component relationships
 - **[Component Model](architecture/component-model.md)** - Detailed component analysis and responsibilities
-- **[Network Architecture](architecture/network-architecture.md)** - Network topology and security boundaries
+- **[Audit System](architecture/audit-system.md)** - Real-time protocol manipulation and session recording
 - **[Data Flow](architecture/data-flow.md)** - End-to-end data flow and session management
+- **[IronRDP Integration](architecture/ironrdp-integration.md)** - Modern RDP protocol implementation analysis
 
 ### Technical Specifications
 - **[RSS Protocol](specifications/rss-protocol.md)** - Custom RSS protocol specification and implementation
 - **[Security Model](specifications/security-model.md)** - Authentication, authorization, and encryption
-- **[Audit Framework](specifications/audit-framework.md)** - Session recording and compliance features
 - **[Deployment Model](specifications/deployment-model.md)** - RPM-based deployment and configuration
 
 ### Architecture Analysis
-- **[Current State Analysis](analysis/current-state.md)** - Comprehensive analysis of existing architecture
-- **[Improvement Recommendations](analysis/recommendations.md)** - Prioritized architectural improvements
-- **[HIPAA Compliance](analysis/hipaa-compliance.md)** - Compliance considerations and requirements
+- **[Audit Race Condition](architecture/audit-race-condition.md)** - Analysis of long-standing audit linking issues
+- **[PCAP Analysis](architecture/pcap-analysis.md)** - Network packet capture alternative assessment
 
 ### Implementation Guidance
-- **[Audit Separation Strategy](recommendations/audit-separation.md)** - Split audit into separate process
+- **[Audit Separation Strategy](recommendations/audit-separation.md)** - Proposed audit process separation approach
+- **[Integrated Audit Web Strategy](recommendations/integrated-audit-web-strategy.md)** - Comprehensive audit modernization and web client delivery proposal
 - **[Key Management Integration](recommendations/key-management.md)** - Integrate with existing key management service
 - **[Protocol Optimization](recommendations/protocol-optimization.md)** - RSS protocol improvements
 - **[Monitoring Strategy](recommendations/monitoring.md)** - HIPAA-compliant monitoring approach
 - **[Configuration Management](recommendations/configuration.md)** - RPM-compatible configuration strategy
 
 ### Visual Documentation
-- **[Architecture Diagrams](diagrams/)** - Visual representations of system architecture
-- **[Sequence Diagrams](diagrams/sequences/)** - Protocol flows and interactions
-- **[Network Diagrams](diagrams/network/)** - Network topology and security zones
+Visual diagrams are embedded within documents using Mermaid syntax for maintainability and version control integration.
 
 ## 🎯 Target Audience
 
@@ -53,9 +52,10 @@ The PAS system provides secure privileged access management for healthcare organ
 - **Operations Teams** - Deployment and configuration management
 
 ### Secondary Audiences
-- **Compliance Officers** - HIPAA compliance validation
-- **Customer Architects** - Integration planning and requirements
+- **Compliance Officers** - Multi-regulatory compliance validation (HIPAA, PCI DSS, SOX, GDPR)
+- **Customer Architects** - Integration planning and requirements across industries
 - **Vendor Partners** - Integration and interoperability
+- **International Teams** - Global deployment and localization requirements
 
 ## 🏗️ Architecture Principles
 
@@ -65,11 +65,14 @@ The PAS system provides secure privileged access management for healthcare organ
 - Complete audit trails for compliance and forensics
 - Principle of least privilege for all access
 
-### HIPAA Compliance
-- No PHI/PII in system logs or monitoring data
-- Comprehensive audit trails for all access
-- Encryption at rest and in transit
-- Role-based access controls
+### Regulatory Compliance
+- **Healthcare**: HIPAA (US), GDPR (EU), NHS standards (UK)
+- **Financial**: PCI DSS, SOX, Basel III, MiFID II
+- **Law Enforcement**: CJIS, various national security standards
+- **Gaming**: State gaming commission regulations
+- **Data Protection**: No PII/PHI in system logs, comprehensive audit trails
+- **Encryption**: At rest and in transit across all sectors
+- **Access Controls**: Role-based with fine-grained permissions
 
 ### Operational Excellence
 - On-premises deployment with customer control
@@ -116,7 +119,13 @@ The PAS system provides secure privileged access management for healthcare organ
 
 ## 🔄 Document Maintenance
 
-This documentation is actively maintained and updated to reflect the current system architecture. Major updates are tracked through version control, and all changes are reviewed for accuracy and completeness.
+This documentation is actively maintained and updated to reflect the current system architecture. All changes are tracked through git version control, ensuring complete history and traceability.
+
+### Documentation Philosophy
+- **Current State Focus**: Documents represent the current authoritative state without historical context
+- **Git Version Control**: All changes, history, and evolution are tracked through git commits
+- **Clean Documentation**: No need to document updates or reference previous versions within documents
+- **Accuracy First**: Technical accuracy and clarity take precedence over historical documentation
 
 ### Update Process
 1. **Architecture Changes** - Updated within 1 week of implementation
@@ -125,20 +134,12 @@ This documentation is actively maintained and updated to reflect the current sys
 4. **Operational Changes** - Updated within 1 week of deployment changes
 
 ### Contributing
-This documentation follows standard technical writing practices with:
-- Clear, concise language appropriate for technical audiences
-- Consistent terminology and formatting
-- Comprehensive cross-references between documents
-- Regular accuracy validation against implementation
-
-## 📞 Contact and Support
-
-For questions about this architecture documentation:
-- **Architecture Team**: Internal architecture review and validation
-- **Development Team**: Implementation guidance and technical details
-- **Operations Team**: Deployment and configuration support
-- **Compliance Team**: HIPAA and regulatory compliance questions
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on:
+- Documentation standards and writing guidelines
+- Review processes and quality assurance
+- File organization and naming conventions
+- Technical accuracy and compliance requirements
 
 ---
 
-*This documentation represents the current state of the PAS system architecture as of the last update. For the most current implementation details, please refer to the source code repositories and deployment configurations.*
+*This documentation represents the current state of the PAS system architecture. Git version control maintains complete change history and evolution. For implementation details, refer to source code repositories and deployment configurations.*

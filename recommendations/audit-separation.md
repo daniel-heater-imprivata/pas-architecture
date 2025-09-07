@@ -6,26 +6,26 @@
 
 **Priority**: HIGHEST - Critical Infrastructure Investment
 **Effort**: 6-8 weeks
-**Risk**: Medium (IPC complexity, performance impact)
+**Risk**: Medium (IPC complexity, credential injection preservation, performance impact)
 
 ## Why This is Priority #1: Developer Productivity Crisis
 
 **The Real Problem**: Audit coupling is killing development velocity. Every audit change requires:
-- Full Parent rebuild (5-10 minutes)
+- Full Parent rebuild (3-5 minutes)
 - Complete Parent restart with database, Spring context, web stack
 - Integration testing with entire monolith
 - Coordinated deployments across audit and business logic
 
-**The Hidden Cost**: Audit changes are frequent (compliance updates, new event types, formatting fixes) but each change has a 10-minute feedback loop. This compounds into hours of lost productivity per week.
+**The Hidden Cost**: Audit changes are frequent (compliance updates, new event types, formatting fixes) but each change has a 5-minute feedback loop. This compounds into hours of lost productivity per week.
 
-**The Strategic Value**: This is infrastructure work that makes everything else possible. Every future audit change becomes a 30-second test cycle instead of 10-minute rebuild cycle.
+**The Strategic Value**: This is infrastructure work that makes everything else possible. Every future audit change becomes a 30-second test cycle instead of 5-minute rebuild cycle.
 
 ## Problem Statement: Development Velocity Killer
 
 Current audit architecture creates a development bottleneck:
 
 ### **Immediate Pain Points**
-- **Slow feedback loop**: 5-10 minute rebuild cycle for any audit change
+- **Slow feedback loop**: 3-5 minute rebuild cycle for any audit change
 - **Monolith coupling**: Can't test audit logic without full Parent stack
 - **Deployment coupling**: Audit fixes require Parent downtime
 - **Testing complexity**: Audit integration tests require database, Spring, web stack
@@ -35,6 +35,14 @@ Current audit architecture creates a development bottleneck:
 - **Debugging complexity**: Audit issues mixed with business logic in same process
 - **Resource contention**: Audit processing competes with Parent for CPU/memory
 - **HIPAA compliance**: Unclear audit boundaries within monolith
+
+### **System Complexity**
+- **Real-time credential injection**: SSH, RDP, VNC require active protocol stream modification
+- **Protocol awareness**: Audit understands RDP PDUs, SSH handshakes, VNC DES challenges
+- **Semantic event recording**: Records application events, not raw network packets
+- **File format dependencies**: RDP2-Converter requires exact binary format preservation
+- **Persistent race condition**: Audit linking uses time-based guessing with 5-second windows
+- **APORT protocol integration**: LibRSSConnect reports session statistics via RSS protocol
 
 ### **Strategic Pain Points**
 - **Innovation blocking**: Complex audit changes avoided due to testing overhead
@@ -70,18 +78,26 @@ Parent Process ↔ IPC ↔ Audit Process
 ```java
 // Core audit IPC interface
 public interface AuditIPC {
-    // Session management
-    void startAuditSession(String sessionId, AuditConfig config);
+    // Session management with credential injection
+    void startAuditSession(String sessionId, AuditConfig config, CredentialInjectionHandler handler);
     void endAuditSession(String sessionId, SessionMetrics metrics);
-    
+
+    // Credential injection requests
+    String injectCredential(String sessionId, String token, ProtocolType protocol);
+    KeyPair injectKeyPair(String sessionId, String token, ProtocolType protocol);
+
     // Event recording
     void recordAuditEvent(String sessionId, AuditEvent event);
     void recordProtocolData(String sessionId, ProtocolData data);
-    
+
+    // File management
+    void notifyAuditFileCreated(String sessionId, String filePath);
+    void linkAuditFile(String sessionId, String accessId);
+
     // Status and health
     AuditStatus getAuditStatus();
     List<ActiveSession> getActiveSessions();
-    
+
     // Configuration
     void updateAuditConfig(AuditConfig config);
     AuditConfig getCurrentConfig();
@@ -233,17 +249,19 @@ public class AuditIPCClient {
 3. Build basic audit process skeleton
 4. Implement process lifecycle management
 
-### Phase 2: Audit Service Migration (Weeks 3-4)
-1. Extract SSH audit service from Parent
-2. Migrate HTTP audit service
-3. Migrate RDP audit service
-4. Implement audit coordinator
+### Phase 2: Credential Injection Migration (Weeks 3-4)
+1. Extract SSH audit service with MITM credential injection
+2. Implement credential injection IPC protocol
+3. Migrate RDP audit service with X.224 credential handling
+4. Migrate VNC audit service with DES challenge injection
+5. Preserve exact file format for RDP2-Converter compatibility
 
 ### Phase 3: Integration and Testing (Weeks 5-6)
-1. Integrate IPC client into Parent
-2. Implement error handling and resilience
-3. Comprehensive testing with all protocols
-4. Performance testing and optimization
+1. Integrate IPC client into Parent with credential injection callbacks
+2. Implement deterministic audit linking to solve 12-year race condition
+3. Comprehensive testing with all protocols and credential injection
+4. Validate RDP2-Converter compatibility with new audit files
+5. Performance testing and optimization for 2000 connection target
 
 ### Phase 4: Production Readiness (Weeks 7-8)
 1. Monitoring and alerting setup
