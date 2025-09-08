@@ -297,7 +297,165 @@ graph TB
     Database --> DB[(Database)]
 ```
 
-## 5. Luna's Specific Questions - Detailed Responses
+## 5. Risk Mitigation Experiments
+
+### Experiment 1: IPC Boundary Validation (Throwaway Spike)
+**Objective**: Confirm we're splitting at the right architectural boundary
+**Timebox**: Maximum 2 days - bail if it takes longer
+**Throwaway Implementation**:
+```bash
+# Vibe-coded throwaway - no documentation, no tests, no error handling
+cargo new boundary-spike --bin
+# Hardcode everything, minimal viable IPC test
+# Implement ONLY credential lookup via Unix socket + MessagePack
+# Java side: minimal IPC server that calls existing CredentialInjectionService
+# Test: Send token, get credential back, compare with direct Java call
+```
+**Success Criteria**: Same credential returned via IPC as direct Java call
+**Failure Criteria**: If we can't get identical results in 2 days, architectural boundary is wrong
+
+### Experiment 2: Audit Compatibility Validation (Throwaway Spike)
+**Objective**: Verify MITM-only separation preserves audit file generation
+**Timebox**: Maximum 2 days - bail if it takes longer
+**Throwaway Implementation**:
+```bash
+# Vibe-coded throwaway - hardcode everything, no proper architecture
+# Minimal SSH connection handler with russh
+# Capture SSH session data, send via IPC to Java audit process
+# Java side: receive IPC events, write to audit file using existing writers
+# Test: Compare audit file output byte-for-byte with current Java MITM
+```
+**Success Criteria**: Identical audit files generated (byte-for-byte comparison)
+**Failure Criteria**: If audit files don't match in 2 days, separation approach is flawed
+
+**Throwaway Code Rules**:
+- No proper error handling - panic on errors
+- Hardcode all configuration and connection details
+- No logging, no monitoring, no production concerns
+- Single-purpose binaries that prove the concept only
+- Delete all code after validation - do not reuse in real implementation
+
+
+
+### Phase 1 Simplification Strategy
+
+**Eliminate Optimization Complexity**: To accelerate delivery and reduce architectural risk, Phase 1 will implement the simplest possible approach:
+
+**NO Credential Caching**: Every credential lookup goes directly through IPC to Java process
+- Eliminates cache invalidation complexity
+- Ensures 100% consistency with existing behavior
+- Reduces state management in Rust MITM process
+
+**NO Connection Pooling**: Simple request/response IPC pattern
+- Eliminates connection lifecycle management
+- Reduces failure modes and edge cases
+- Simplifies error handling and recovery
+
+**NO Performance Optimization**: Focus purely on functional correctness
+- Direct pass-through of all audit events
+- Immediate IPC calls for all operations
+- Synchronous processing where possible
+
+**Benefits of Simplification**:
+- Faster development and testing cycles
+- Easier debugging and troubleshooting
+- Lower risk of architectural mistakes
+- Clear validation of separation boundary
+- Performance optimization can be added in Phase 2 after architectural validation
+
+## 6. Scope Limitation Strategy
+
+### What Will NOT Change
+
+**Audit File Formats**: All existing binary and text audit file formats remain identical
+**Database Schemas**: No changes to audit database tables or record structures
+**Parent UI**: No changes to audit viewing, searching, or management interfaces
+**Customer Deployments**: Existing customer configurations remain valid
+**Audit APIs**: All existing audit REST APIs and interfaces unchanged
+**Compliance**: All existing compliance certifications and audit trails preserved
+
+### Backward Compatibility Guarantees
+
+**Audit File Compatibility**: New Rust MITM generates identical audit files to existing Java implementation
+**Database Compatibility**: Audit records maintain same structure and foreign key relationships
+**API Compatibility**: All existing audit APIs continue to function without modification
+**Configuration Compatibility**: Existing audit configuration files and settings preserved
+
+### Customer Impact Minimization
+
+**Zero Downtime Deployment**: Blue/green deployment strategy with automatic rollback
+**Gradual Rollout**: Pilot customers first, then phased rollout based on protocol usage
+**Fallback Strategy**: Ability to revert to existing Java MITM if issues arise
+**Support Continuity**: Same troubleshooting procedures and log locations
+
+## 7. Success Metrics and Validation
+
+### Technical Success Criteria
+
+**Performance**: Connection establishment time within 15% of current baseline
+**Reliability**: zero audit data loss
+**Scalability**: Support 2000+ concurrent connections (2x current capacity)
+**Compatibility**: 100% audit file format compatibility with existing tools
+
+### Business Success Criteria
+
+**Timeline**: Web client delivery by December 2024 deadline
+**Customer Satisfaction**: Successful pilot deployment with 5+ customers
+**Risk Mitigation**: Zero critical audit data loss incidents post-deployment
+**Development Velocity**: Reduced MITM-related support burden
+
+### Monitoring and Alerting
+
+**IPC Health**: Monitor IPC connection status and latency
+**Audit Completeness**: Validate audit file generation for all connections
+**Performance Metrics**: Track connection establishment time and resource usage
+**Error Rates**: Monitor and alert on credential lookup failures and IPC errors
+
+## 9. Management Summary and Recommendations
+
+### Executive Decision Points
+
+**Technical Feasibility**: ✅ **CONFIRMED** - Separation boundary clearly identified with minimal Java changes
+**Risk Assessment**: ✅ **LOW RISK** - 95% of audit codebase remains unchanged
+**Timeline Viability**: ✅ **ACHIEVABLE** - 12 weeks with existing WebSocket protocol foundation
+**Resource Requirements**: ✅ **REASONABLE** - 2.05 FTE across parallel development tracks
+
+### Critical Success Factors
+
+1. **Preserve PAS Audit Architecture**: Only extract MITM proxy, keep all audit logic in Java
+2. **Minimize Integration Changes**: 3 Java classes modified, existing interfaces preserved
+3. **Leverage Existing Assets**: 2.5-year-old WebSocket protocol eliminates major risk
+4. **Parallel Development**: Independent tracks reduce critical path dependencies
+
+### Risk Mitigation Summary
+
+**Technical Risks**: Mitigated by throwaway proof-of-concept experiments
+**Timeline Risks**: Mitigated by 3-4 weeks buffer time and existing protocol foundation
+**Integration Risks**: Mitigated by minimal Java changes and preserved audit patterns
+**Performance Risks**: Mitigated by simple IPC design - optimization deferred to Phase 2
+
+### Recommended Next Steps
+
+1. **Approve 12-week timeline** with Phase 1 scope (SSH + RDP + HTTP/HTTPS if time permits)
+2. **Authorize proof-of-concept experiments** to validate IPC communication and credential injection timing
+3. **Assign resources** according to parallel development plan (1.0 + 0.3 + 0.5 + 0.25 FTE)
+4. **Establish success metrics** and monitoring framework for post-deployment validation
+
+### Final Assessment
+
+The MITM-only separation approach provides the optimal balance of:
+- **Customer Value**: Web client delivery by December deadline
+- **Technical Risk**: Minimal changes to proven audit architecture
+- **Development Risk**: Leverages existing assets and parallel development
+- **Business Risk**: Preserves existing functionality while adding new capabilities
+
+**Recommendation**: Proceed with MITM-only separation as specified in this analysis.
+
+
+---
+
+
+## Luna's Specific Questions - Detailed Responses
 
 ### Customer Data Loss Incident Analysis
 
@@ -353,164 +511,3 @@ graph TB
 
 **Risk Mitigation**: 3-4 weeks of buffer time built into schedule due to existing WebSocket protocol foundation
 
-## 6. Risk Mitigation Experiments
-
-### Experiment 1: Separation Boundary Validation
-**Objective**: Confirm we're splitting at the right architectural boundary
-**Implementation**:
-```bash
-# Create throwaway Rust/Java IPC test
-cargo new boundary-test
-# Implement ONLY the ICredentialInjectionHandler interface via IPC
-# NO caching, NO optimization - pure pass-through
-# Test credential lookup, session lifecycle, audit event flow
-# Validate that existing audit files are identical
-```
-**Success Criteria**: Identical audit output, clean interface boundary, no missing data
-
-### Experiment 2: Architectural Approach Validation
-**Objective**: Verify the MITM-only separation preserves all audit functionality
-**Implementation**:
-```bash
-# Create minimal SSH MITM with russh (no caching, no optimization)
-# Direct IPC calls for every credential lookup (no local cache)
-# Stream all audit events immediately to Java process
-# Compare audit files byte-for-byte with current Java MITM
-```
-**Success Criteria**: 100% audit compatibility, no functional regressions, clean separation
-
-### Experiment 3: Integration Point Validation
-**Objective**: Confirm existing WebSocket protocol integrates cleanly with separated architecture
-**Implementation**:
-```bash
-# Implement basic WebSocket server in Rust using tungstenite
-# Connect existing web client PoC code (no modifications)
-# Stream SSH terminal data while simultaneously sending audit events via IPC
-# Validate dual-stream architecture (WebSocket + IPC)
-```
-**Success Criteria**: Existing web client works unchanged, audit events captured correctly
-
-### Experiment 4: Failure Mode Analysis
-**Objective**: Understand what happens when IPC fails or Java audit process crashes
-**Implementation**:
-```bash
-# Test IPC connection failures, timeouts, Java process crashes
-# Validate fallback behavior (passthrough mode vs connection termination)
-# Test recovery scenarios and state consistency
-# Document failure modes and recovery procedures
-```
-**Success Criteria**: Graceful degradation, no data corruption, clear failure boundaries
-
-### Phase 1 Simplification Strategy
-
-**Eliminate Optimization Complexity**: To accelerate delivery and reduce architectural risk, Phase 1 will implement the simplest possible approach:
-
-**NO Credential Caching**: Every credential lookup goes directly through IPC to Java process
-- Eliminates cache invalidation complexity
-- Ensures 100% consistency with existing behavior
-- Reduces state management in Rust MITM process
-
-**NO Connection Pooling**: Simple request/response IPC pattern
-- Eliminates connection lifecycle management
-- Reduces failure modes and edge cases
-- Simplifies error handling and recovery
-
-**NO Performance Optimization**: Focus purely on functional correctness
-- Direct pass-through of all audit events
-- Immediate IPC calls for all operations
-- Synchronous processing where possible
-
-**Benefits of Simplification**:
-- Faster development and testing cycles
-- Easier debugging and troubleshooting
-- Lower risk of architectural mistakes
-- Clear validation of separation boundary
-- Performance optimization can be added in Phase 2 after architectural validation
-
-## 7. Scope Limitation Strategy
-
-### What Will NOT Change
-
-**Audit File Formats**: All existing binary and text audit file formats remain identical
-**Database Schemas**: No changes to audit database tables or record structures
-**Parent UI**: No changes to audit viewing, searching, or management interfaces
-**Customer Deployments**: Existing customer configurations remain valid
-**Audit APIs**: All existing audit REST APIs and interfaces unchanged
-**Compliance**: All existing compliance certifications and audit trails preserved
-
-### Backward Compatibility Guarantees
-
-**Audit File Compatibility**: New Rust MITM generates identical audit files to existing Java implementation
-**Database Compatibility**: Audit records maintain same structure and foreign key relationships
-**API Compatibility**: All existing audit APIs continue to function without modification
-**Configuration Compatibility**: Existing audit configuration files and settings preserved
-
-### Customer Impact Minimization
-
-**Zero Downtime Deployment**: Blue/green deployment strategy with automatic rollback
-**Gradual Rollout**: Pilot customers first, then phased rollout based on protocol usage
-**Fallback Strategy**: Ability to revert to existing Java MITM if issues arise
-**Support Continuity**: Same troubleshooting procedures and log locations
-
-## 8. Success Metrics and Validation
-
-### Technical Success Criteria
-
-**Performance**: Connection establishment time within 15% of current baseline
-**Reliability**: <0.1% audit data loss rate (improvement from current system)
-**Scalability**: Support 2000+ concurrent connections (2x current capacity)
-**Compatibility**: 100% audit file format compatibility with existing tools
-
-### Business Success Criteria
-
-**Timeline**: Web client delivery by December 2024 deadline
-**Customer Satisfaction**: Successful pilot deployment with 5+ customers
-**Risk Mitigation**: Zero critical audit data loss incidents post-deployment
-**Development Velocity**: Reduced MITM-related support burden on Java team
-
-### Monitoring and Alerting
-
-**IPC Health**: Monitor IPC connection status and latency
-**Audit Completeness**: Validate audit file generation for all connections
-**Performance Metrics**: Track connection establishment time and resource usage
-**Error Rates**: Monitor and alert on credential lookup failures and IPC errors
-
-## 9. Management Summary and Recommendations
-
-### Executive Decision Points
-
-**Technical Feasibility**: ✅ **CONFIRMED** - Separation boundary clearly identified with minimal Java changes
-**Risk Assessment**: ✅ **LOW RISK** - 95% of audit codebase remains unchanged
-**Timeline Viability**: ✅ **ACHIEVABLE** - 12 weeks with existing WebSocket protocol foundation
-**Resource Requirements**: ✅ **REASONABLE** - 2.05 FTE across parallel development tracks
-
-### Critical Success Factors
-
-1. **Preserve PAS Audit Architecture**: Only extract MITM proxy, keep all audit logic in Java
-2. **Minimize Integration Changes**: 3 Java classes modified, existing interfaces preserved
-3. **Leverage Existing Assets**: 2.5-year-old WebSocket protocol eliminates major risk
-4. **Parallel Development**: Independent tracks reduce critical path dependencies
-
-### Risk Mitigation Summary
-
-**Technical Risks**: Mitigated by throwaway proof-of-concept experiments
-**Timeline Risks**: Mitigated by 3-4 weeks buffer time and existing protocol foundation
-**Integration Risks**: Mitigated by minimal Java changes and preserved audit patterns
-**Performance Risks**: Mitigated by simple IPC design - optimization deferred to Phase 2
-
-### Recommended Next Steps
-
-1. **Approve 12-week timeline** with Phase 1 scope (SSH + RDP + HTTP/HTTPS if time permits)
-2. **Authorize proof-of-concept experiments** to validate IPC communication and credential injection timing
-3. **Assign resources** according to parallel development plan (1.0 + 0.3 + 0.5 + 0.25 FTE)
-4. **Establish success metrics** and monitoring framework for post-deployment validation
-
-### Final Assessment
-
-The MITM-only separation approach provides the optimal balance of:
-- **Customer Value**: Web client delivery by December deadline
-- **Technical Risk**: Minimal changes to proven audit architecture
-- **Development Risk**: Leverages existing assets and parallel development
-- **Business Risk**: Preserves existing functionality while adding new capabilities
-
-**Recommendation**: Proceed with MITM-only separation as specified in this analysis.
