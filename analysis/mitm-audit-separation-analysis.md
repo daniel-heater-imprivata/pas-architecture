@@ -315,28 +315,6 @@ graph TB
 - Explicit error handling with connection termination on audit failures
 - Memory-safe buffer management prevents overflow conditions
 
-### Performance Impact Justification
-
-**Current Baseline Performance**:
-- SSH connections: ~50ms connection establishment overhead
-- RDP connections: ~200ms connection establishment overhead
-- Concurrent connection limit: ~1000 connections per process
-
-**Estimated Performance Impact**:
-- **IPC overhead**: +5-10ms per credential lookup (1-2 per connection)
-- **Process separation**: +2-5ms connection establishment
-- **Total overhead**: +7-15ms per connection (~15-30% increase)
-
-**Mitigation Strategies**:
-- Connection pooling and credential caching in Rust MITM
-- Async IPC with pipelining for multiple concurrent lookups
-- Local credential cache with TTL to reduce IPC calls
-
-**Web vs SSH Routing Decision**:
-- Decision made at connection establishment based on client type
-- State maintained in Rust MITM process (session ID mapping)
-- No additional complexity for separated architecture vs integrated
-
 ### Resource Requirements and Learning Curve
 
 **Developer Resources**:
@@ -377,50 +355,77 @@ graph TB
 
 ## 6. Risk Mitigation Experiments
 
-### Experiment 1: IPC Communication Validation
-**Objective**: Validate MessagePack serialization performance and reliability
+### Experiment 1: Separation Boundary Validation
+**Objective**: Confirm we're splitting at the right architectural boundary
 **Implementation**:
 ```bash
 # Create throwaway Rust/Java IPC test
-cargo new ipc-test
-# Implement basic credential lookup request/response
-# Measure latency under load (1000 requests/second)
-# Validate error handling and timeout behavior
+cargo new boundary-test
+# Implement ONLY the ICredentialInjectionHandler interface via IPC
+# NO caching, NO optimization - pure pass-through
+# Test credential lookup, session lifecycle, audit event flow
+# Validate that existing audit files are identical
 ```
-**Success Criteria**: <10ms average latency, <1% error rate under load
+**Success Criteria**: Identical audit output, clean interface boundary, no missing data
 
-### Experiment 2: Credential Injection Timing
-**Objective**: Verify credential injection timing compatibility with existing audit system
+### Experiment 2: Architectural Approach Validation
+**Objective**: Verify the MITM-only separation preserves all audit functionality
 **Implementation**:
 ```bash
-# Create minimal SSH MITM with russh
-# Implement credential token detection and replacement
-# Test against existing CredentialInjectionService via IPC
-# Validate audit event generation matches existing format
+# Create minimal SSH MITM with russh (no caching, no optimization)
+# Direct IPC calls for every credential lookup (no local cache)
+# Stream all audit events immediately to Java process
+# Compare audit files byte-for-byte with current Java MITM
 ```
-**Success Criteria**: Identical audit events generated, no timing regressions
+**Success Criteria**: 100% audit compatibility, no functional regressions, clean separation
 
-### Experiment 3: WebSocket Protocol Integration
-**Objective**: Confirm existing WebSocket protocol works with new Rust MITM
+### Experiment 3: Integration Point Validation
+**Objective**: Confirm existing WebSocket protocol integrates cleanly with separated architecture
 **Implementation**:
 ```bash
 # Implement basic WebSocket server in Rust using tungstenite
-# Connect existing web client PoC code
-# Stream SSH terminal data over WebSocket
-# Validate protocol compatibility and performance
+# Connect existing web client PoC code (no modifications)
+# Stream SSH terminal data while simultaneously sending audit events via IPC
+# Validate dual-stream architecture (WebSocket + IPC)
 ```
-**Success Criteria**: Existing web client works without modification
+**Success Criteria**: Existing web client works unchanged, audit events captured correctly
 
-### Experiment 4: Load Testing Baseline
-**Objective**: Establish current system performance baseline for comparison
+### Experiment 4: Failure Mode Analysis
+**Objective**: Understand what happens when IPC fails or Java audit process crashes
 **Implementation**:
 ```bash
-# Set up load testing environment with 1000+ concurrent SSH connections
-# Measure connection establishment time, memory usage, CPU utilization
-# Document current audit file generation performance
-# Identify bottlenecks and failure modes
+# Test IPC connection failures, timeouts, Java process crashes
+# Validate fallback behavior (passthrough mode vs connection termination)
+# Test recovery scenarios and state consistency
+# Document failure modes and recovery procedures
 ```
-**Success Criteria**: Documented baseline for post-separation comparison
+**Success Criteria**: Graceful degradation, no data corruption, clear failure boundaries
+
+### Phase 1 Simplification Strategy
+
+**Eliminate Optimization Complexity**: To accelerate delivery and reduce architectural risk, Phase 1 will implement the simplest possible approach:
+
+**NO Credential Caching**: Every credential lookup goes directly through IPC to Java process
+- Eliminates cache invalidation complexity
+- Ensures 100% consistency with existing behavior
+- Reduces state management in Rust MITM process
+
+**NO Connection Pooling**: Simple request/response IPC pattern
+- Eliminates connection lifecycle management
+- Reduces failure modes and edge cases
+- Simplifies error handling and recovery
+
+**NO Performance Optimization**: Focus purely on functional correctness
+- Direct pass-through of all audit events
+- Immediate IPC calls for all operations
+- Synchronous processing where possible
+
+**Benefits of Simplification**:
+- Faster development and testing cycles
+- Easier debugging and troubleshooting
+- Lower risk of architectural mistakes
+- Clear validation of separation boundary
+- Performance optimization can be added in Phase 2 after architectural validation
 
 ## 7. Scope Limitation Strategy
 
@@ -481,7 +486,7 @@ cargo new ipc-test
 
 ### Critical Success Factors
 
-1. **Preserve David's Audit Architecture**: Only extract MITM proxy, keep all audit logic in Java
+1. **Preserve PAS Audit Architecture**: Only extract MITM proxy, keep all audit logic in Java
 2. **Minimize Integration Changes**: 3 Java classes modified, existing interfaces preserved
 3. **Leverage Existing Assets**: 2.5-year-old WebSocket protocol eliminates major risk
 4. **Parallel Development**: Independent tracks reduce critical path dependencies
@@ -491,7 +496,7 @@ cargo new ipc-test
 **Technical Risks**: Mitigated by throwaway proof-of-concept experiments
 **Timeline Risks**: Mitigated by 3-4 weeks buffer time and existing protocol foundation
 **Integration Risks**: Mitigated by minimal Java changes and preserved audit patterns
-**Performance Risks**: Mitigated by <10ms IPC overhead and connection caching
+**Performance Risks**: Mitigated by simple IPC design - optimization deferred to Phase 2
 
 ### Recommended Next Steps
 
