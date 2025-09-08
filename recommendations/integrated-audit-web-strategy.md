@@ -65,7 +65,26 @@ Separate audit into independent Rust process that simultaneously provides:
 - **MSDP**: HTTP-based service discovery protocol
 - **Horizon**: VMware Horizon protocol support
 
-**Web Client Scope**: Initial focus on SSH and RDP protocols for December delivery, with other protocols following based on customer priority and technical feasibility.
+## Protocol Prioritization Across Phases
+
+**Phase 1 Protocols (December 2024 Delivery)**:
+- **SSH**: MITM proxy with credential injection (80%+ of customer usage)
+- **RDP**: X.224 credential injection with binary audit format (70%+ of customer usage)
+- **HTTP/HTTPS**: Regex-based credential replacement (time permitting - if schedule allows)
+
+**Phase 2 Protocols (Q1 2025)**:
+- **HTTP/HTTPS**: Regex-based credential replacement (if not completed in Phase 1)
+- **Telnet**: Terminal stream injection (legacy protocol, declining usage)
+- **FTP**: Command monitoring (legacy protocol, minimal usage)
+- **VNC**: DES challenge/response injection (specialized use cases)
+
+**Phase 3 Protocols (Q2 2025)**:
+- **Oracle**: SQL protocol injection (database-specific customers)
+- **MySQL**: SQL protocol injection (database-specific customers)
+- **MSDP**: HTTP-based service discovery (specialized deployments)
+- **Horizon**: VMware Horizon protocol (virtualization-specific customers)
+
+**Rationale**: Phase 1 focuses on SSH and RDP which represent 80%+ of customer protocol usage. HTTP/HTTPS included as time-permitting to maximize Phase 1 value. Phase 2 covers remaining common protocols, Phase 3 handles specialized/database protocols.
 
 ### Key Benefits
 - **Immediate web client delivery** for December deadline
@@ -192,11 +211,14 @@ Separate audit into independent Rust process that simultaneously provides:
 
 **Honest Assessment**: This IS a complete rewrite of the audit MiTM system. Timeline needs realistic evaluation.
 
-**Proposed Timeline Revision**: 16-20 weeks for complete implementation
-- **Phase 1 (Weeks 1-6)**: SSH MiTM rewrite with basic credential injection
-- **Phase 2 (Weeks 7-12)**: RDP integration using IronRDP with WebSocket streaming
-- **Phase 3 (Weeks 13-16)**: Production hardening and load testing
-- **Phase 4 (Weeks 17-20)**: Full deployment and monitoring
+**Revised Timeline**: 12 weeks for Phase 1 delivery (SSH + RDP + HTTP/HTTPS if time permits)
+- **Phase 1 (Weeks 1-3)**: SSH MiTM rewrite with WebSocket streaming
+- **Phase 2 (Weeks 4-6)**: RDP integration using IronRDP with WebSocket streaming
+- **Phase 3 (Weeks 7-9)**: Production hardening and load testing (2000+ connections)
+- **Phase 4 (Weeks 10-12)**: System integration and customer rollout (HTTP/HTTPS if buffer time available)
+
+**Phase 2 Protocols**: Q1 2025 delivery for HTTP/HTTPS, Telnet, FTP, VNC
+**Phase 3 Protocols**: Q2 2025 delivery for Oracle, MySQL, MSDP, Horizon
 
 **Parallel Development Opportunities**:
 - **Audit logging separation**: Other developers can extract audit file generation from MiTM process
@@ -260,35 +282,36 @@ Separate audit into independent Rust process that simultaneously provides:
 
 **Detailed 16-Week Timeline**:
 
-**Weeks 1-2: Foundation Setup**
-- Week 1: Rust development environment, basic project structure, SSH protocol research
-- Week 2: SSH credential injection proof-of-concept, database connection setup
-- Checkpoint: Basic SSH MiTM working with hardcoded credentials
+**Weeks 1-3: SSH Implementation (Phase 1)**
+- Week 1: SSH MITM foundation with russh library integration
+- Week 2: SSH credential injection + existing WebSocket protocol integration
+- Week 3: BUFFER WEEK - SSH hardening, edge case testing, performance optimization
+- Checkpoint: SSH web client functional with production-ready reliability
 
-**Weeks 3-4: SSH Implementation**
-- Week 3: SSH credential lookup integration, basic audit logging
-- Week 4: SSH load testing (100 connections), WebSocket foundation
-- Checkpoint: SSH web client functional, performance baseline established
+**Weeks 4-6: RDP Implementation (Phase 1)**
+- Week 4: RDP MITM with IronRDP integration and credential injection
+- Week 5: RDP WebSocket streaming using proven protocol patterns
+- Week 6: BUFFER WEEK - RDP optimization, graphics performance tuning
+- Checkpoint: RDP web client functional with graphics streaming
+**Weeks 7-9: Production Hardening (Phase 1)**
+- Week 7: Load testing with 2000+ concurrent connections, comprehensive validation
+- Week 8: Production hardening with enhanced error scenarios and monitoring
+- Week 9: Security review with additional penetration testing time
+- Checkpoint: System production-ready with comprehensive quality assurance
 
-**Weeks 5-6: RDP Foundation**
-- Week 5: IronRDP integration research, basic RDP connection handling
-- Week 6: RDP credential injection implementation
-- Checkpoint: RDP credential injection working, IronRDP integrated
+**Weeks 10-12: Integration & Deployment (Phase 1)**
+- Week 10: Full system integration testing with extra validation time
+- Week 11: Production deployment with comprehensive rollback testing
+- Week 12: Customer rollout with dedicated issue resolution capacity
+- Checkpoint: SSH + RDP web clients delivered to customers
 
-**Weeks 7-8: RDP Web Client**
-- Week 7: RDP WebSocket streaming, graphics PDU handling
-- Week 8: RDP web client UI, load testing (500 connections)
-- Checkpoint: RDP web client functional, performance validated
+**Phase 2 Protocols (Q1 2025)**
+- HTTP/HTTPS, Telnet, FTP, VNC protocol implementations
+- Advanced web client features for common legacy protocols
 
-**Weeks 9-10: Production Hardening**
-- Week 9: Error handling, logging, monitoring integration
-- Week 10: Security review, configuration management
-- Checkpoint: Production-ready code, security validated
-
-**Weeks 11-12: Integration Testing**
-- Week 11: Full system integration testing, parallel operation setup
-- Week 12: Load testing (2000 connections), performance optimization
-- Checkpoint: System ready for production deployment
+**Phase 3 Protocols (Q2 2025)**
+- Oracle, MySQL, MSDP, Horizon protocol implementations
+- Database and virtualization-specific protocol optimizations
 
 **Weeks 13-14: Deployment Preparation**
 - Week 13: Production deployment scripts, rollback procedures
@@ -419,40 +442,50 @@ The technical due diligence demonstrates that this approach addresses fundamenta
 
 **Weaknesses**:
 - **Complete rewrite risk**: Despite using proven libraries, integration complexity is significant
-- **Timeline pressure**: 16-20 weeks may still be optimistic for complete implementation
+- **Timeline pressure**: 12 weeks achievable for Phase 1 (SSH + RDP) with existing WebSocket protocol foundation
 - **Technology learning curve**: Team has limited Rust experience
 
 ### Alternative Recommendation: Phased Approach
 
 Given the December deadline pressure and lessons learned from LibRSSConnect, consider this alternative:
 
-**Phase A (8-10 weeks): SSH-Only Web Client**
-- Focus exclusively on SSH web client using existing audit system
-- Minimal changes to current architecture
-- Delivers partial customer requirement by December
-- Proves web client concept with lowest risk
+**Phase 1 (12 weeks): SSH + RDP + HTTP/HTTPS (time permitting)**
+- Focus on SSH and RDP protocols (80%+ customer usage)
+- HTTP/HTTPS implementation if buffer time allows
+- Leverages existing WebSocket protocol foundation
+- 3-4 weeks buffer time for quality assurance and HTTP/HTTPS if feasible
 
-**Phase B (16-20 weeks): Full Audit Rewrite**
-- Complete audit separation and RDP support after December delivery
-- Allows more time for proper implementation
-- Reduces pressure and scope creep risk
-- Enables proper load testing and hardening
+**Phase 2 (Q1 2025): Common Legacy Protocols**
+- HTTP/HTTPS (if not completed in Phase 1), Telnet, FTP, VNC implementations
+- Builds on proven Phase 1 foundation
+- Covers remaining common protocol usage
 
-### Management Decision Framework
+**Phase 3 (Q2 2025): Specialized Protocols**
+- Oracle, MySQL, MSDP, Horizon implementations
+- Database and virtualization-specific customers
+- Focused development for specialized use cases
 
-**If December deadline is non-negotiable**:
-- Recommend SSH-only web client approach
-- Accept partial solution to meet customer commitment
+### Final Recommendation
 
-**If audit reliability is highest priority**:
-- Proceed with full rewrite approach
-- Request 16-20 week timeline
-- Accept December deadline miss for comprehensive solution
+**Phase 1 Approach (SSH + RDP) - 12 Week Timeline**:
 
-**If development velocity is critical**:
-- Audit separation is prerequisite regardless of web client approach
-- Consider audit-only separation first, web client second
-- May deliver faster overall results
+**Benefits**:
+- Addresses 80%+ of customer protocol usage immediately
+- HTTP/HTTPS bonus delivery if schedule permits (covers 90%+ usage)
+- Leverages existing WebSocket protocol to eliminate integration risk
+- Provides 3-4 weeks of buffer time for quality assurance and HTTP/HTTPS
+- Delivers web client functionality for primary use cases by December
+- Maintains audit reliability through Rust rewrite of MITM components
+
+**Phase 2 Strategy (Q1 2025)**:
+- Common legacy protocols (HTTP/HTTPS if needed, Telnet, FTP, VNC)
+- Builds on proven Phase 1 foundation for faster implementation
+
+**Phase 3 Strategy (Q2 2025)**:
+- Specialized database and virtualization protocols
+- Focused development for specific customer segments
+
+**Risk Mitigation**: Existing WebSocket protocol foundation eliminates the primary technical risk. Buffer time allocation ensures quality delivery within 12-week commitment.
 
 ## Conclusion
 
