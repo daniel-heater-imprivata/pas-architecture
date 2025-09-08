@@ -1,25 +1,25 @@
-# Integrated Audit Separation and Web Client Strategy
+# MITM Proxy Separation and Web Client Strategy
 
 ## Executive Summary
 
-**Recommendation**: Implement audit separation with integrated web client functionality using Rust and IronRDP library to deliver December 2024 web client requirements while solving critical infrastructure issues.
+**Recommendation**: Extract MITM proxy functionality into independent Rust process with integrated web client support using IronRDP library to deliver December 2025 web client requirements while preserving existing audit architecture.
 
-**Business Justification**: 
+**Business Justification**:
 - **Customer Revenue Protection**: Multi-year customer demand for web-based access with firm December deadline
-- **Critical System Reliability**: Recent customer data loss in audit system requires immediate architectural improvements
-- **Development Velocity Crisis**: 3-5 minute rebuild cycles are blocking rapid iteration needed for December delivery
+- **MITM Reliability Issues**: Recent customer data loss incidents traced to MITM proxy instability
 - **Protocol Currency Gap**: Hand-rolled RDP implementation missing customer-requested features available in IronRDP
+- **Minimal Risk Approach**: Preserve proven audit architecture while adding web client capabilities
 
-**Timeline**: 12 weeks to December delivery with phased approach minimizing risk to existing systems.
+**Timeline**: 12 weeks to December delivery with minimal changes to existing audit architecture.
 
-**Strategic Value**: Adds web client capabilities while preserving all existing native client functionality, establishing foundation for long-term development velocity improvements and system reliability.
+**Strategic Value**: Adds web client capabilities while preserving all existing native client functionality and proven audit architecture, delivering customer requirements with minimal risk.
 
 ## Business Context and Urgency
 
 ### Critical Issues Driving Change
 
-#### Customer Data Loss Incident
-Recent audit system failures have resulted in customer data loss, creating compliance risks across multiple regulated industries and customer trust issues. The current Spring-coupled architecture makes audit failures capable of destabilizing the entire Parent application and vice versa.
+#### MITM Proxy Reliability Issues
+Recent customer data loss incidents have been traced to instability in the MITM proxy components, particularly in RDP connection handling. The current custom RDP implementation has edge cases that cause connection drops and audit data loss.
 
 #### RDP Protocol Currency Gap
 Our custom RDP implementation lacks features customers have requested:
@@ -29,8 +29,8 @@ Our custom RDP implementation lacks features customers have requested:
 - Standard .rdp file support
 - Advanced virtual channel support
 
-#### Development Velocity Crisis
-Current audit coupling requires 3-5 minute rebuild cycles for any audit changes, making rapid iteration impossible. This directly threatens December web client delivery timeline.
+#### Preserving Proven Audit Architecture
+The existing audit system represents years of development and handles complex multi-protocol scenarios reliably. Rather than risk disrupting this proven architecture, we propose extracting only the MITM proxy layer while preserving all existing audit functionality and integration patterns.
 
 ### Customer Requirements
 - **Additional web-based access** without client software installation (in addition to existing native clients)
@@ -38,16 +38,16 @@ Current audit coupling requires 3-5 minute rebuild cycles for any audit changes,
 - **Preserved native client functionality** including SSH tunneling and port forwarding
 - **Multi-regulatory compliance** and audit requirements (HIPAA, PCI DSS, SOX, GDPR, CJIS)
 - **Global deployment** support with data sovereignty compliance
-- **December 2024 delivery**
+- **December 2025 delivery**
 
-## Recommended Approach: Integrated Audit + Web Client
+## Recommended Approach: MITM Proxy Separation + Web Client
 
 ### Architecture Overview
-Separate audit into independent Rust process that simultaneously provides:
-1. **Enhanced audit capabilities** with improved reliability and performance (free and immediate by using IronRDP)
+Extract MITM proxy functionality into independent Rust process that provides:
+1. **Enhanced MITM reliability** using battle-tested IronRDP library for RDP connections
 2. **Integrated web client support** via WebSocket streaming to browsers
-3. **Protocol consolidation** using battle-tested IronRDP library
-4. **Preserved compatibility** with existing Parent functionality
+3. **Preserved audit architecture** - all existing audit functionality remains in Parent/Java
+4. **Minimal integration changes** - audit logging continues through existing patterns
 
 ### Critical Scope Clarification: Addition, Not Replacement
 
@@ -60,7 +60,7 @@ Separate audit into independent Rust process that simultaneously provides:
 - **Audit coverage**: Both native client connections and web client connections receive identical audit logging and credential injection
 
 **What we're adding**: Browser-based access option for users who need clientless connectivity
-**What we're NOT changing**: Any existing native client functionality or SSH tunneling capabilities
+**What we're NOT changing**: Any existing native client functionality, SSH tunneling capabilities, or audit architecture
 
 ### Implementation Strategy
 - **Phase 1 (Weeks 1-4)**: Basic audit separation with SSH credential injection + WebSocket foundation
@@ -81,18 +81,18 @@ Separate audit into independent Rust process that simultaneously provides:
 
 ## Protocol Prioritization Across Phases
 
-**Phase 1 Protocols (December 2024 Delivery)**:
-- **SSH**: MITM proxy with credential injection (80%+ of customer usage)
-- **RDP**: X.224 credential injection with binary audit format (70%+ of customer usage)
+**Phase 1 Protocols (December 2025 Delivery)**:
+- **SSH**: MITM proxy with credential injection
+- **RDP**: X.224 credential injection with binary audit format
 - **HTTP/HTTPS**: Regex-based credential replacement (time permitting - if schedule allows)
 
-**Phase 2 Protocols (Q1 2025)**:
+**Phase 2 Protocols (Q1 2026)**:
 - **HTTP/HTTPS**: Regex-based credential replacement (if not completed in Phase 1)
 - **Telnet**: Terminal stream injection (legacy protocol, declining usage)
 - **FTP**: Command monitoring (legacy protocol, minimal usage)
 - **VNC**: DES challenge/response injection (specialized use cases)
 
-**Phase 3 Protocols (Q2 2025)**:
+**Phase 3 Protocols (Q2 2026)**:
 - **Oracle**: SQL protocol injection (database-specific customers)
 - **MySQL**: SQL protocol injection (database-specific customers)
 - **MSDP**: HTTP-based service discovery (specialized deployments)
@@ -103,7 +103,7 @@ Separate audit into independent Rust process that simultaneously provides:
 ### Key Benefits
 - **Immediate web client delivery** for December deadline
 - **Audit system reliability** improvements preventing data loss
-- **Development velocity** increase (30-second tests vs 10-minute rebuilds)
+- **Development velocity** increase
 - **Protocol modernization** through IronRDP adoption
 - **Operational simplification** (single component vs separate Guacamole deployment)
 
@@ -171,7 +171,7 @@ Separate audit into independent Rust process that simultaneously provides:
 - **Memory safety**: Audit system handles sensitive credential data - memory corruption bugs create security vulnerabilities
 - **Performance**: Zero-cost abstractions and no garbage collection pauses under high connection load
 - **Concurrency**: Built-in async/await eliminates complex thread management for 2000+ concurrent connections
-- **Team Learning**: Single developer (DH) leads implementation, team learns gradually through code review
+- **Team Learning**: Single developer leads implementation, team learns gradually through code review
 - **IronRDP Integration**: Library is Rust-native, Java bindings would add complexity and performance overhead
 
 **Management Concern - "All we care about is web clients!"**:
@@ -231,20 +231,18 @@ Separate audit into independent Rust process that simultaneously provides:
 - **Phase 3 (Weeks 7-9)**: Production hardening and load testing (2000+ connections)
 - **Phase 4 (Weeks 10-12)**: System integration and customer rollout (HTTP/HTTPS if buffer time available)
 
-**Phase 2 Protocols**: Q1 2025 delivery for HTTP/HTTPS, Telnet, FTP, VNC
-**Phase 3 Protocols**: Q2 2025 delivery for Oracle, MySQL, MSDP, Horizon
+**Phase 2 Protocols**: Q1 2026 delivery for HTTP/HTTPS, Telnet, FTP, VNC
+**Phase 3 Protocols**: Q2 2026 delivery for Oracle, MySQL, MSDP, Horizon
 
 **Parallel Development Opportunities**:
-- **Audit logging separation**: Other developers can extract audit file generation from MiTM process
+- **Java integration adaptation**: Modify existing audit code to interface with new MITM process (minimal changes)
 - **Web client UI**: Can be developed using existing WebSocket protocol from PoC (recommend vanilla TypeScript, no WASM based on PoC lessons learned - best performance/simplicity). Clients are very simple HTML5.
-- **Database integration**: Rust PostgreSQL crates for audit record creation
+- **MITM process development**: Independent Rust development without affecting existing audit architecture
 
 **Performance Considerations for MiTM/Audit Separation**:
 - **Risk**: Additional IPC overhead between credential injection and audit logging
 - **Mitigation**: Shared memory or high-performance message queues for audit data
 - **Alternative**: Keep audit generation in MiTM process, separate only audit file storage
-
-**Recommendation**: Request 16-20 week timeline or reduce scope to SSH-only web client for December delivery.
 
 ### "Risk of disrupting existing stable systems"
 
@@ -261,9 +259,10 @@ Separate audit into independent Rust process that simultaneously provides:
 - **Recommendation**: Rapid cutover per protocol rather than extended parallel operation
 
 **Parent Application Changes**:
-- **Credential injection**: Moves from Parent to new Rust MiTM process
-- **Database integration**: New Rust PostgreSQL connections for audit record creation
-- **Parent UI**: Unchanged (audit has no UI components)
+- **MITM proxy calls**: Redirect to new Rust MITM process instead of internal Java MITM
+- **Audit functionality**: Remains completely unchanged in Parent/Java
+- **Database integration**: Continues using existing audit patterns and connections
+- **Parent UI**: Unchanged (no audit UI components affected)
 - **Configuration**: Database-driven configuration (no Spring dependency in new audit process)
 - **Audit file discovery**: Parent continues existing file system access patterns
 
@@ -319,13 +318,126 @@ Separate audit into independent Rust process that simultaneously provides:
 - Week 12: Customer rollout with dedicated issue resolution capacity
 - Checkpoint: SSH + RDP web clients delivered to customers
 
-**Phase 2 Protocols (Q1 2025)**
+**Phase 2 Protocols (Q1 2026)**
 - HTTP/HTTPS, Telnet, FTP, VNC protocol implementations
 - Advanced web client features for common legacy protocols
 
-**Phase 3 Protocols (Q2 2025)**
+**Phase 3 Protocols (Q2 2026)**
 - Oracle, MySQL, MSDP, Horizon protocol implementations
 - Database and virtualization-specific protocol optimizations
+
+## Parallel Development Strategy and Resource Allocation
+
+### Resource Requirements and Allocation
+
+**Track 1: Rust MITM Process Development - 1.0 FTE (Rust Developer)**
+- Core MITM proxy functionality rewrite
+- WebSocket streaming integration
+- IronRDP integration for RDP protocol
+- Performance optimization and load testing
+
+**Track 2: Java Integration Adaptation - 0.3 FTE (Java Developer)**
+- Modify existing audit code to interface with new MITM process
+- Maintain all existing audit functionality and patterns
+- IPC protocol implementation for MITM communication
+- No audit architecture changes - only integration points
+
+**Track 3: Web Client UI Development - 0.5 FTE (Frontend Developer)**
+- Browser-based client using existing WebSocket protocol
+- SSH terminal interface and RDP graphics rendering
+- Can start immediately with proven protocol specification
+- Vanilla TypeScript implementation
+
+**Track 4: Integration & Deployment - 0.25 FTE (DevOps/QA)**
+- System integration testing
+- Deployment coordination
+- Performance validation
+
+**Total Resource Investment**: 2.05 FTE across 12 weeks = 24.6 person-weeks
+
+### Week-by-Week Parallel Schedule
+
+**Weeks 1-3: Foundation Phase**
+
+*Track 1 (Rust MITM) - DH 1.0 FTE*
+- Week 1: SSH MITM Foundation (russh integration, basic proxy)
+- Week 2: SSH credential injection + database lookup
+- Week 3: SSH WebSocket streaming implementation
+
+*Track 2 (Java Integration) - Java Dev 0.3 FTE*
+- Week 1: Analyze existing audit integration points
+- Week 2: Design IPC protocol for MITM communication
+- Week 3: Implement audit-to-MITM interface (no audit changes)
+
+*Track 3 (Web Client) - Frontend Dev 0.5 FTE*
+- Week 1: WebSocket Protocol Integration (using existing PoC)
+- Week 2: SSH Terminal UI (terminal emulation, input handling)
+- Week 3: Basic SSH web client functionality
+
+*Track 4 (Integration) - DevOps 0.25 FTE*
+- Week 1-3: Environment setup, CI/CD pipeline preparation
+
+**Weeks 4-6: RDP Implementation Phase**
+
+*Track 1 (Rust MITM) - DH 1.0 FTE*
+- Week 4: RDP MITM with IronRDP (credential injection)
+- Week 5: RDP WebSocket Streaming (graphics PDU handling)
+- Week 6: RDP protocol optimization and testing
+
+*Track 2 (Java Integration) - Java Dev 0.3 FTE*
+- Week 4: Implement IPC integration with Rust MITM process
+- Week 5: Test audit flow with new MITM process
+- Week 6: End-to-end audit validation
+
+*Track 3 (Web Client) - Frontend Dev 0.5 FTE*
+- Week 4: RDP Graphics Rendering (canvas implementation)
+- Week 5: RDP mouse/keyboard input handling
+- Week 6: RDP web client integration
+
+*Track 4 (Integration) - DevOps 0.25 FTE*
+- Week 4-6: System Integration Testing preparation
+
+**Weeks 7-9: Hardening Phase**
+
+*Track 1 (Rust MITM) - DH 1.0 FTE*
+- Week 7: Load Testing & Performance (2000+ connections)
+- Week 8: Production Hardening (error handling, logging)
+- Week 9: Security review and optimization
+
+*Track 2 (Java Integration) - Java Dev 0.3 FTE*
+- Week 7: Performance testing of audit integration
+- Week 8: Production hardening and monitoring
+- Week 9: Documentation and handoff
+
+*Track 3 (Web Client) - Frontend Dev 0.5 FTE*
+- Week 7: Web Client Testing (cross-browser, performance)
+- Week 8: UI/UX refinements and optimization
+- Week 9: Production readiness and documentation
+
+*Track 4 (Integration) - DevOps 0.25 FTE*
+- Week 7: System Integration Testing
+- Week 8: Performance Validation (full system)
+- Week 9: Production Deployment preparation
+
+**Weeks 10-12: Integration & Deployment**
+
+*All Tracks Converge - 2.05 FTE Total*
+- Week 10: Full system integration and testing
+- Week 11: Production deployment and monitoring setup
+- Week 12: Customer rollout and issue resolution
+
+### Critical Dependencies and Risk Mitigation
+
+**Week 2 Dependency**: IPC protocol must be defined before Rust MITM can integrate
+**Week 3 Dependency**: WebSocket protocol must be stable before RDP implementation
+**Week 6 Checkpoint**: All components must be functionally complete before integration phase
+**Week 9 Checkpoint**: All hardening must be complete before production deployment
+
+**Risk Mitigation Strategies**:
+- **Parallel Development Risks**: Weekly sync meetings between all tracks
+- **Integration Complexity**: Use existing audit patterns, minimal changes
+- **Resource Risks**: Java developer can be part-time, work is well-defined
+- **WebSocket Protocol**: Use existing PoC definition, minimize changes
 
 **Weeks 13-14: Deployment Preparation**
 - Week 13: Production deployment scripts, rollback procedures
@@ -395,10 +507,10 @@ Separate audit into independent Rust process that simultaneously provides:
 ## Stakeholder Impact Analysis
 
 ### Java Development Team
-**Impact**: Significant changes as credential injection moves from Parent to Rust process
-**Benefits**: Reduced audit-related support burden, faster development cycles, elimination of audit-related Parent crashes
-**Concerns**: New technology stack for audit functionality, reduced control over audit implementation
-**Mitigation**: Gradual learning through code review, focus on Parent application features rather than audit internals
+**Impact**: Minimal changes - only MITM proxy integration points modified
+**Benefits**: Preserved audit architecture expertise, reduced MITM-related support burden, improved MITM reliability
+**Concerns**: New IPC integration with Rust MITM process
+**Mitigation**: Minimal integration changes, existing audit patterns preserved, gradual learning through code review
 
 ### Web Client Team
 **Impact**: Immediate development possible using existing WebSocket protocol from PoC
@@ -415,13 +527,13 @@ Separate audit into independent Rust process that simultaneously provides:
 **Mitigation**: Gradual rollout with existing system fallback, operational documentation
 
 ### Customer Support Team
-**Impact**: New web client functionality to support, separate audit logging system
-**Benefits**: Reduced audit-related customer issues, improved web access capabilities
-**Concerns**: Learning new web client features, separate audit logs (no longer integrated with Parent logs)
+**Impact**: New web client functionality to support, same audit logging system
+**Benefits**: Reduced MITM-related customer issues, improved web access capabilities, same audit troubleshooting procedures
+**Concerns**: Learning new web client features
 **Mitigation**:
 - Training materials and gradual customer rollout
-- Centralized logging aggregation to maintain troubleshooting visibility
-- Clear documentation of new audit log locations and formats
+- Existing audit log locations and formats preserved
+- Same troubleshooting procedures for audit issues
 
 ### Management Team
 **Impact**: Resource allocation and priority management to maintain developer focus
@@ -469,12 +581,12 @@ Given the December deadline pressure and lessons learned from LibRSSConnect, con
 - Leverages existing WebSocket protocol foundation
 - 3-4 weeks buffer time for quality assurance and HTTP/HTTPS if feasible
 
-**Phase 2 (Q1 2025): Common Legacy Protocols**
+**Phase 2 (Q1 2026): Common Legacy Protocols**
 - HTTP/HTTPS (if not completed in Phase 1), Telnet, FTP, VNC implementations
 - Builds on proven Phase 1 foundation
 - Covers remaining common protocol usage
 
-**Phase 3 (Q2 2025): Specialized Protocols**
+**Phase 3 (Q2 2026): Specialized Protocols**
 - Oracle, MySQL, MSDP, Horizon implementations
 - Database and virtualization-specific customers
 - Focused development for specialized use cases
@@ -491,11 +603,11 @@ Given the December deadline pressure and lessons learned from LibRSSConnect, con
 - Delivers web client functionality for primary use cases by December
 - Maintains audit reliability through Rust rewrite of MITM components
 
-**Phase 2 Strategy (Q1 2025)**:
+**Phase 2 Strategy (Q1 2026)**:
 - Common legacy protocols (HTTP/HTTPS if needed, Telnet, FTP, VNC)
 - Builds on proven Phase 1 foundation for faster implementation
 
-**Phase 3 Strategy (Q2 2025)**:
+**Phase 3 Strategy (Q2 2026)**:
 - Specialized database and virtualization protocols
 - Focused development for specific customer segments
 
@@ -504,7 +616,5 @@ Given the December deadline pressure and lessons learned from LibRSSConnect, con
 ## Conclusion
 
 This analysis reveals the tension between immediate business needs (December web client) and fundamental architectural improvements (audit reliability and development velocity). The integrated approach attempts to solve both simultaneously but carries significant implementation risk.
-
-**Primary Recommendation**: Request realistic 16-20 week timeline for integrated approach, acknowledging this misses December deadline but delivers comprehensive solution.
 
 The choice depends on business priorities: customer commitment fulfillment vs. long-term system reliability and development productivity. Both approaches have merit depending on organizational risk tolerance and strategic priorities.
