@@ -12,7 +12,7 @@
 
 **Timeline**: 12 weeks to December delivery with phased approach minimizing risk to existing systems.
 
-**Strategic Value**: Solves immediate web client needs while establishing foundation for long-term development velocity improvements and system reliability.
+**Strategic Value**: Adds web client capabilities while preserving all existing native client functionality, establishing foundation for long-term development velocity improvements and system reliability.
 
 ## Business Context and Urgency
 
@@ -33,11 +33,12 @@ Our custom RDP implementation lacks features customers have requested:
 Current audit coupling requires 3-5 minute rebuild cycles for any audit changes, making rapid iteration impossible. This directly threatens December web client delivery timeline.
 
 ### Customer Requirements
-- **Web-based access** without client software installation
+- **Additional web-based access** without client software installation (in addition to existing native clients)
 - **Multi-protocol support** (RDP, SSH, VNC) through browser
+- **Preserved native client functionality** including SSH tunneling and port forwarding
 - **Multi-regulatory compliance** and audit requirements (HIPAA, PCI DSS, SOX, GDPR, CJIS)
 - **Global deployment** support with data sovereignty compliance
-- **December 2025 delivery**
+- **December 2024 delivery**
 
 ## Recommended Approach: Integrated Audit + Web Client
 
@@ -47,6 +48,19 @@ Separate audit into independent Rust process that simultaneously provides:
 2. **Integrated web client support** via WebSocket streaming to browsers
 3. **Protocol consolidation** using battle-tested IronRDP library
 4. **Preserved compatibility** with existing Parent functionality
+
+### Critical Scope Clarification: Addition, Not Replacement
+
+**Web clients are an ADDITION to existing functionality, not a replacement:**
+
+- **Native clients continue unchanged**: All existing RDP clients, SSH clients, and other native applications work exactly as before
+- **SSH tunneling preserved**: SSH port forwarding and tunneling capabilities remain fully functional for native client access
+- **Customer choice**: Users can choose between native clients OR web clients based on their specific needs and constraints
+- **Existing workflows maintained**: Complex native client setups, automated scripts, and enterprise integrations continue operating without modification
+- **Audit coverage**: Both native client connections and web client connections receive identical audit logging and credential injection
+
+**What we're adding**: Browser-based access option for users who need clientless connectivity
+**What we're NOT changing**: Any existing native client functionality or SSH tunneling capabilities
 
 ### Implementation Strategy
 - **Phase 1 (Weeks 1-4)**: Basic audit separation with SSH credential injection + WebSocket foundation
